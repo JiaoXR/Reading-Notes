@@ -3,9 +3,7 @@
 
 HTTP: HyperText Transfer Protocol, 超文本传输协议。
 
-PS: HTTP 通常被译为超文本传输协议，但并不严谨（只是已经约定俗成）。严谨的译名应该为“超文本转移协议”。
-
-
+> PS: HTTP 通常被译为超文本传输协议，但并不严谨（只是已经约定俗成）。严谨的译名应该为“超文本转移协议”。
 
 WWW: World Wide Web, 万维网。
 
@@ -37,9 +35,7 @@ TCP: Transmission Control Protocol, 传输控制协议。TCP 位与传输层，�
 
 三次握手示意图：
 
-【PICS】
-
-
+![三次握手](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/3%E6%AC%A1%E6%8F%A1%E6%89%8B.png)
 
 UDP: User Data Protocol, 用户数据报协议。
 
@@ -47,7 +43,7 @@ UDP: User Data Protocol, 用户数据报协议。
 
 ## 第 2 章  简单的 HTTP 协议
 
-请求访问文本或图像等资源的一端成为客户端，提供资源响应的一端称为服务端。
+请求访问文本或图像等资源的一端称为客户端，提供资源响应的一端称为服务端。
 
 
 
@@ -78,13 +74,13 @@ TLS: Transport Layer Security, 传输层安全。
 
 HTTP 协议的初始版本中，每进行一次 HTTP 通信就要断开一次 TCP 连接：
 
-【TCP 连接】
+![TCP 连接](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/TCP%20%E8%BF%9E%E6%8E%A5.png)
 
 
 
 持久连接（HTTP Persistent Connections，也称为 HTTP keep-alive 或 HTTP connection reuse）：
 
-【TCP 持久连接】
+![TCP 持久连接](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/TCP%20%E6%8C%81%E4%B9%85%E8%BF%9E%E6%8E%A5.png)
 
 持久连接的特点：只要任意一端没有明确提出断开连接，则保持 TCP 连接状态。
 
@@ -102,7 +98,7 @@ HTTP 协议的初始版本中，每进行一次 HTTP 通信就要断开一次 TC
 
 这样能够做到同时并行发送多个请求，而不需要一个接一个地等待响应了。
 
-【管线化】
+![管线化](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/%E7%AE%A1%E7%BA%BF%E5%8C%96.png)
 
 
 
@@ -116,15 +112,13 @@ Cookie 会根据从服务器端发送的响应报文内的一个叫做 Set-Cooki
 
 服务器端发现客户发送过来的 Cookie 后，回去检查是从哪一个客户端发来的连接请求，然后对比服务器上的记录，最后得到之前的状态信息。
 
-【Cookie 图1】
+![Cookie图1](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/Cookie%20%E5%9B%BE1.png)
 
-【Cookie 图2】
+![Cookie图2](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/Cookie%20%E5%9B%BE2.png)
 
 
 
 ## 第 3 章  HTTP 报文内的 HTTP 信息
-
-
 
 - HTTP 报文
 
@@ -132,7 +126,9 @@ Cookie 会根据从服务器端发送的响应报文内的一个叫做 Set-Cooki
 
 【HTTP 报文结构】
 
+![HTTP 报文结构](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/HTTP%20%E6%8A%A5%E6%96%87%E7%BB%93%E6%9E%84.png)
 
+![HTTP 报文实例](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/HTTP%20%E6%8A%A5%E6%96%87%E5%AE%9E%E4%BE%8B.png)
 
 ### 报文& 实体
 
@@ -150,13 +146,13 @@ HTTP 报文的主体用于传输请求或响应的实体主体。通常，报文
 
 - 内容编码
 
-【pic】
+![内容编码](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/HTTP%20%E6%8A%A5%E6%96%87%E5%AE%9E%E4%BE%8B.png)
 
 
 
 - 分块传输编码（Chunked Transfer Coding）
 
-【pic】
+![分块传输编码](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/%E5%88%86%E5%9D%97%E4%BC%A0%E8%BE%93%E7%BC%96%E7%A0%81.png)
 
 
 
@@ -167,6 +163,8 @@ HTTP 报文的主体用于传输请求或响应的实体主体。通常，报文
 - 内容协商返回最合适的内容
 
 同一个 Web 网站有可能存在着多份相同内容的页面。比如英文版和中文版的 Web 页面，它们内容上虽相同，但使用的语言却不同。这样的机制称为内容协商（Content Negotiation）。例如：
+
+![内容协商](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/%E5%86%85%E5%AE%B9%E5%8D%8F%E5%95%86.png)
 
 有 3 种类型：
 
