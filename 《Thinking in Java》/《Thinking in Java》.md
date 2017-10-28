@@ -210,21 +210,309 @@ public enum Day {
 
 
 
+# 第 7 章  复用类
+
+- 组合
+- 继承
+- 代理
 
 
 
+析构函数是一种在对象被销毁时可以被自动调用的函数。
+
+向上转型：子类转为父类的类型。由导出类转型成基类，在继承图上是向上移动的，因此一般称为向上转型。
+
+- final 关键字
+
+对于引用对象，final使引用恒定不变，然而，对象其自身是可修改的。
+
+类中所以的 private 方法都隐式地指定为是 final 的。
+
+final 类禁止继承。
+
+类的代码在初次使用时才加载。
+
+初次使用之处也是 static 初始化发生之处。所有的 static 对象和 static 代码段都会在加载时依程序中的顺序（即，定义类时的书写顺序）而依次初始化。当然，定义为 static 的东西只会被初始化依次。
 
 
 
+# 第 8 章  多态
+
+将一个方法调用同一个方法主体关联起来被称作 **绑定**。
+
+若在程序执行之前进行绑定（如果有的话，由编译器和连接程序实现），叫做 **前期绑定**。
+
+- 前期绑定
+
+面向过程语言中不需要选择就默认实现的绑定方式。例如 C 语言只有一种方法调用，就是前期绑定。
+
+- 多态
+
+也叫动态绑定、后期绑定或运行时绑定。在运行时根据对象的类型进行绑定。
+
+Java 中除了 static 方法和 final 方法（private 方法属于 final 方法）之外，其他所有的方法都是后期绑定。
 
 
 
+### 继承的缺陷
+
+- “覆盖”私有方法
+
+示例代码：
+
+```java
+public class PrivateOverride {
+    private void f() { System.out.println("private f()"); }
+
+    public static void main(String[] args) {
+        PrivateOverride po = new Derived();
+        po.f(); // 期望输出："public f()"；实际输出："private f()"
+    }
+}
+
+public class Derived extends PrivateOverride {
+    public void f() {
+        System.out.println("public f()");
+    }
+}
+```
+
+原因：由于 private 方法被自动认为是 final 方法，而且对导出类是屏蔽的。因此，Derived 中的 f() 方法就是一个全新的方法。既然基类中的 f() 方法在子类 Derived 中不可见，因此也不能被重载。
+
+> 结论：只有非 private 方法才可以被覆盖。还要密切注意覆盖 private 方法的现象，虽然编译器不会报错，但是通常也不会达到我们期望的效果。因此，在导出类（子类）中，对于基类中的 private 方法，最好采用不同的名字。
 
 
 
+- 域与静态方法
+
+示例代码：
+
+```java
+public class Super {
+    public int field = 0;
+
+    public int getField() {
+        return field;
+    }
+}
+
+public class Sub extends Super {
+    public int field = 1;
+
+    @Override
+    public int getField() {
+        return field;
+    }
+
+    public int getSuperField() {
+        return super.getField();
+    }
+}
+
+public class FieldAccess {
+    public static void main(String[] args) {
+        Super sup = new Sub();
+        System.out.println("sup.field: " + sup.field +
+        ", sup.getField():" + sup.getField());
+
+        Sub sub = new Sub();
+        System.out.println("sub.field: " + sub.field +
+                ", sub.getField():" + sub.getField() +
+                ", sub.getSuperField():" + sub.getSuperField());
+    }
+}
+
+/* 输出结果：
+sup.field = 0, sup.getField() = 1
+sub.field = 1, sub.getField() = 1, sub.getSuperField() = 0
+*/
+```
+
+当 Sub 对象转型为 Super 引用时，任何域访问操作都将由编译器解析，因此不是多态的。在本例中，为 Super.field 和 Sub.field 分配了不同的存储空间。这样，Sub 实际上包含两个称为 field 的域：它自己的和它从 Super 处得到的。然而，在引用 Sub 中的 field 时所产生的默认域并非 Super 版本的 field 域。因此，为了得到 Super.field，必须显示地指明 super.field.
 
 
 
+如果某个方法是静态的，它的行为就不具有多态性。示例代码：
+
+```java
+public class StaticSuper {
+    public static String staticGet(){
+        return "Base staticGet()";
+    }
+    public String dynamicGet() {
+        return "Base dynamicGet()";
+    }
+}
+
+public class StaticSub extends StaticSuper {
+    public static String staticGet() {
+        return "Derived staticGet()";
+    }
+    public String dynamicGet() {
+        return "Derived dynamicGet()";
+    }
+}
+
+public class StaticPolymorphism {
+    public static void main(String[] args) {
+        StaticSuper sup = new StaticSub();
+        System.out.println(sup.staticGet());
+        System.out.println(sup.dynamicGet());
+    }
+}
+
+/* 输出结果：
+Base staticGet()
+Derived dynamicGet()
+*/
+```
+
+
+
+### 构造器和多态
+
+构造器不同于其他种类的方法。构造器不具有多态性（它们实际上是 static 方法，只不过该 static 声明是隐式的）。
+
+示例代码：
+
+```java
+class Meal() {
+	Meal() { print("Meal()") }
+}
+
+class Bread() {
+	Bread() { print("Bread()") }
+}
+
+class Cheese() {
+	Cheese() { print("Cheese()") }
+}
+
+class Lettuce() {
+	Lettuce() { print("Lettuce()") }
+}
+
+class Lunch extends Meal() {
+	Lunch() { print("Meal()") }
+}
+
+class PortableLunch extends Meal() {
+	PortableLunch() { print("PortableLunch()") }
+}
+
+publci class Sandwich extends PortableLunch() {
+  	private Bread b = new Bread();
+  	private Cheese c = new Cheese();
+  	private Lettuce l = new Lettuce();
+	Sandwich() { print("Sandwich()") }
+	public static void main(String[] args) {
+        new Sandwich();
+    }
+}
+
+/* 输出结果：
+Meal()
+Lunch()
+PortableLunch()
+Bread()
+Cheese()
+Lettuce()
+Sandwich()
+*/
+```
+
+调用构造器的顺序：
+
+1. 调用基类构造器。这个步骤会不断地反复递归下去，直到最底层的导出类。
+2. 按声明顺序调用成员的初始化方法。
+3. 调用导出类构造器的主体。
+
+
+
+- 构造器内部的多态方法的行为
+
+示例代码：
+
+```java
+class Glyph {
+    void draw() {
+        System.out.println("Glyph.draw()");
+    }
+    Glyph() {
+        System.out.println("Glyph() before draw()");
+        draw();
+        System.out.println("Glyph() after draw()");
+    }
+}
+
+class RoundGlyph extends Glyph {
+    private int radius = 1;
+
+    RoundGlyph(int radius) {
+        this.radius = radius;
+        System.out.println("RoundGlyph.RoundGlyph(), radius = " + radius);
+    }
+
+    @Override
+    void draw() {
+        System.out.println("RoundGlyph.draw(), radius = " + radius);
+    }
+}
+
+public class PolyConstructor {
+    public static void main(String[] args) {
+        new RoundGlyph(5);
+    }
+}
+
+/* 输出结果：
+Glyph() before draw()
+RoundGlyph.draw(), radius = 0
+Glyph() after draw()
+RoundGlyph.RoundGlyph(), radius = 5
+*/
+```
+
+初始化的实际过程是：
+
+1. 在其他任何事物发生之前，将分配给对象的存储空间初始化为二进制的零。
+2. 调用基类构造器。此时，调用被覆盖后的 draw() 方法（要在调用 RoundGlyph 构造器之前调用），由于步骤 1 的缘故，此时 radius 的值为 0.
+3. 按照声明的顺序调用成员的初始化方法。
+4. 调用导出类的构造器方法。
+
+
+
+> 编写构造器一条有效地准则：“用尽可能简单的方法使对象进入正常状态；如果可以的话，避免调用其他方法。”
+
+
+
+### 协变返回类型
+
+示例代码：
+
+```java
+class Grain {
+    public String toString() { return "Grain"; }
+}
+
+class Wheat extends Grain {
+    public String toString() { return "Wheat"; }
+}
+
+class Mill {
+    Grain process(){ return new Grain(); }
+}
+
+public class WheatMill extends Mill {
+    Wheat process() { return new Wheat(); }
+}
+```
+
+协变返回类型允许返回更具体的 `Wheat` 类型。
+
+
+
+# 第 9 章  接口
 
 
 
