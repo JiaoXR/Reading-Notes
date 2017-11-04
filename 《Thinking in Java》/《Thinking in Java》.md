@@ -514,6 +514,238 @@ public class WheatMill extends Mill {
 
 # 第 9 章  接口
 
+接口也可以包含域，但这些域隐式地是 static 和 final 的（不能是“空 final”，但可以被非常量表达式初始化）。这些域不是接口的一部分，它们的值被存储在该接口的静态存储区域内。
+
+PS: 用接口可便捷地创建常量组。主要用于 Java SE5 之前。Java SE5 之后，创建常量组主要使用 `enum` 关键字来实现。
+
+
+
+创建一个能够根据所传递的参数对象的不同而具有不同行为的方法，称为*策略模式*。这类方法包含所要执行的算法中固定不变的部分，而“策略”包含变化的部分。
+
+
+
+- 接口 & 抽象类的选择
+
+如果要创建不带任何方法定义和成员变量的基类，应选接口而非抽象类。事实上，若某事物应该成为一个基类，那么第一选择应该是使它成为一个接口。
+
+
+
+# 第 10 章  内部类
+
+将一个类的定义放在另一个类的定义内部，叫内部类。
+
+
+
+ ### 使用 .this 与 .new
+
+若需要生成对外部类对象的引用，可以使用外部类的名字后面紧跟圆点和 **this**。这样产生的引用自动地具有正确的类型，这一点在编译期就被知晓并受到检查，因此没有任何运行时开销。示例代码：
+
+```java
+public class DotThis {
+    void f() {
+        System.out.println("DotThis.f()");
+    }
+
+    public class Inner {
+        public DotThis outer() {
+            return DotThis.this; // 注意写法
+        }
+    }
+
+    public Inner inner() {
+        return new Inner();
+    }
+
+    public static void main(String[] args) {
+        DotThis dt = new DotThis();
+        DotThis.Inner dti = dt.inner();
+        dti.outer().f();
+    }
+}
+```
+
+有时可能想告知其他对象，去创建某个内部类的对象。要实现此目的，必须在 new 表达式中提供对其他外部类对象的引用，需要使用 `.new` 语法。示例代码：
+
+```java
+public class DotNew {
+    public class Inner {}
+
+    public static void main(String[] args) {
+        DotNew dn = new DotNew();
+        DotNew.Inner dni = dn.new Inner(); // 注意写法
+    }
+}
+```
+
+> 要想直接创建内部类的对象，必须使用外部类的对象来创建该内部类对象。
+
+> 在拥有外部类对象之前是不可能创建内部类对象的。因为内部类对象会暗暗地连接到创建它的外部类对象上。但是若创建的是嵌套类（静态内部类），那么它就不需要对外部类对象的引用。
+
+
+
+### 在方法和作用域内的内部类
+
+- 局部内部类
+
+可以在方法的作用域内（而不是在其他类的作用域内）创建一个完整的类，者被称作局部内部类。示例代码：
+
+```java
+public class Parcel5 {
+    class PDestination {} // 此处同名不影响
+    
+    public Destination destination(String s) {
+        class PDestination implements Destination {
+            private String label;
+
+            private PDestination(String whereTo) {
+                label = whereTo;
+            }
+
+            @Override
+            public String readLabel() {
+                return label;
+            }
+        }
+        return new PDestination(s);
+    }
+
+    public static void main(String[] args) {
+        Parcel5 p = new Parcel5();
+        Destination d = p.destination("Beijing");
+    }
+}
+```
+
+PDestination 类是 destination() 方法的一部分，而不是 Parcel5 的一部分。所以，在 destination() 之外不能访问 PDestination。
+
+- 匿名内部类
+
+示例代码：
+
+```java
+public class Parcel7 {
+    public Contents contents() {
+        return new Contents() {
+            private int i = 11; 
+            @Override
+            public int value() { return i; }
+        }; // 注意分号
+    }
+    
+    public static void main(String[] args) {
+        Parcel7 p = new Parcel7();
+        Contents c = p.contents();
+    }
+}
+```
+
+该写法是下述写法的简写：
+
+```java
+public class Parcel7 {
+  	class MyContents implemets Contents {
+		private int i = 11; 
+		@Override
+		public int value() { return i; }
+    }
+  
+    public Contents contents() {
+        return new MyContents();
+    }
+    
+    public static void main(String[] args) {
+        Parcel7 p = new Parcel7();
+        Contents c = p.contents();
+    }
+}
+```
+
+- 嵌套类
+
+若不需要内部类对象与其外围类对象之间有联系，那么可以将内部类声明为 static。这通常称为嵌套类。
+
+嵌套类特点：
+
+1. 要创建嵌套类的对象，并不需要其外围类的对象。
+2. 不能从嵌套类的对象中访问非静态的外围类对象。
+
+嵌套类与普通的内部类还有一个区别：普通内部类的字段与方法，只能放在类的外部层次上，所以普通的内部类不能有 static 数据和 static 字段，也不能包含嵌套类。而嵌套类可以包含所有这些东西。
+
+- 接口内部的类
+
+示例代码：
+
+```java
+public interface ClassInterface {
+    void howdy();
+    class Test implements ClassInterface {
+        @Override
+        public void howdy() {
+            System.out.println("Howdy");
+        }
+
+        public static void main(String[] args) {
+            new Test().howdy();
+        }
+    }
+}
+```
+
+- 为什么需要内部类
+
+每个内部类都能独立地继承自一个（接口的）实现，所以无论外围类是否已经继承了某个（接口的）实现，对于内部类都没有影响。
+
+内部类使得多重继承的解决方案变得完整，有效地实现了“多重继承”。
+
+
+
+- 闭包与回调
+
+。。。
+
+- 内部类的继承
+
+示例代码：
+
+```java
+class WithInner {
+    class Inner {}
+}
+
+class InheritInner extends WithInner.Inner {
+    // InheritInner() {} error!
+  	InheritInner(WithInner wi) {
+        wi.super();
+    }
+  	public static void main(String[] args) {
+        WithInner wi = new WithInner();
+      	InheriteInner ii = new InheritInner(wi);
+    }
+}
+```
+
+
+
+- 内部类标识符
+
+每个类都会产生一个 .class 文件，包含了如何创建该类型的对象的全部信息（此信息产生一个 “meta-class”，叫做 Class 对象）。
+
+内部类也必须生成一个 .class 文件以包含它们的 Class 对象信息。 命名规则：外围类的名字$内部类的名字。例如：
+
+```java
+Counter.class
+LocalInnerClass$1.class
+LocalInnerClass$1LocalCounter.class
+```
+
+若类是匿名的，编译器会简单地产生一个数字作为其标识。
+
+
+
+
+
+
+
 
 
 
