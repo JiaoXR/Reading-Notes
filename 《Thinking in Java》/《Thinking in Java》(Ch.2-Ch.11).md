@@ -742,25 +742,148 @@ LocalInnerClass$1LocalCounter.class
 
 
 
+# 第 11 章  持有对象
+
+### 容器
+
+- Collection
+
+Arrays.asList() : 底层是数组，不能调整尺寸。
+
+Collection.addAll();
+
+- Map
 
 
 
+- 容器的打印
+
+数组的可打印表示需要使用 `Arrays.toString()`   方法，容器打印则无需任何帮助。
+
+- 特点
+
+  - List : 有序，可重复
+
+    - ArrayList : 随机访问较快，插入移除慢；
+    - LinkedList : 插入删除快，随机访问较慢；
+
+  - Set : 无序，不重复
+
+    - HashSet : 查找最快，无序（使用的是散列函数）；
+    - TreeSet : 按照比较结果升序排列（使用的是红-黑树结构）；
+    - LinkedHashSet : 按照被添加的顺序保存对象；
+
+  - 队列
+
+    - Queue : 一端进，另一端出
+
+    队列是一个典型的先进先出（FIFO）的容器。
+
+    ​	先进先出描述了最典型的队列规则。队列规则是指在给定的一组队列中的元素的情况下，确定下一个弹出队列的元素的规则。先进先出声明的是下一个元素应该是等待最长的元素。
+
+    - PriorityQueue
+
+    优先队列声明下一个弹出元素是最需要的元素（优先级最高的）。
+
+
+  - Map : 键值对
+    - HashMap : 查找最快，无序；
+    - TreeMap : 按照比较结果的升序保存“键”；
+    - LinkedHashMap : 按照插入顺序保存键，同时还保留了 HashMap 的查找速度；
+  - Stack
+
+  “栈”通常是指“后进先出（LIFO）”的容器。有时也称为叠加栈。
+
+  - 不推荐使用过时的 Vector, HashTable 和 Stack.
+
+- 一些方法
+
+Collections.sort();
+
+Collections.shuffle();
 
 
 
+###  迭代器
 
+- Iterator
 
+迭代器是一个对象，它的工作是遍历并选择序列中的对象，且不必知道或关心该序列底层的结构。迭代器统一了对容器的访问方式。
 
+示例代码：
 
+```java
+List<Pet> pets = Pets.arrayList(12);
+Iterator<Pet> it = pets.iterator();
+while (it.hasNext()) {
+    Pet p = it.next();
+}
+```
 
+若只是向前遍历 List，而不打算修改 List，则 foreach 语法会更简洁。 
 
+- ListIterator
 
+ListIterator 是一个更加强大的 Iterator 的子类型，它只能用于各种 List 的访问。Iterator 只能向前移动，而  ListIterator 可以双向移动。
 
+示例代码：
 
+```java
+List<Pet> pets = Pets.arrayList(12);
+ListIterator<Pet> it = pets.listIterator();
+while (it.hasNext()) {
+  System.out.println(it.next() + ", " + it.nextIndex() + ", " + it.previousIndex());
+}
+```
 
+- Arrays.asList() 方法
 
+示例代码：
 
+```java
+public class ModifyingArraysAsList {
+    public static void main(String[] args) {
+        Random random = new Random(47);
+        Integer[] ia = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
+        List<Integer> list1 = new ArrayList<>(Arrays.asList(ia)); // 不会修改数组 ia
+        System.out.println("Before shuffling: " + list1);
+        Collections.shuffle(list1, random);
+        System.out.println("After shuffling: " + list1);
+        System.out.println("array:" + Arrays.toString(ia));
 
+        System.out.println();
 
+        List<Integer> list2 = Arrays.asList(ia); // 会修改数组 ia
+        System.out.println("Before shuffling: " + list2);
+        Collections.shuffle(list2, random);
+        System.out.println("After shuffling: " + list2);
+        System.out.println("array:" + Arrays.toString(ia));
+    }
+}
+
+/* 输出结果：
+	Before shuffling: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+	After shuffling: [4, 6, 3, 1, 8, 7, 2, 5, 10, 9]
+	array:[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+	Before shuffling: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+	After shuffling: [9, 1, 6, 3, 7, 2, 5, 10, 4, 8]
+	array:[9, 1, 6, 3, 7, 2, 5, 10, 4, 8]
+*/
+```
+
+第一种情况：Arrays.asList() 的输出被传递给了 ArrayList() 的构造器，将创建一个引用 ia 的元素的 ArrayList，因此打乱这些引用不会修改该数组。
+
+但若直接使用 Array.asList(ia) 的结果，就会修改 ia 的顺序。使用 Arrays.asList() 产生的 List 对象会使用底层数组作为其物理实现。
+
+- 小结
+
+简单的容器分类：
+
+![container](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/thinking/container.png)
+
+其实只有四种容器：Map, List, Set, Queue, 它们各自有两到三个实现版本。常用的容器用黑色粗线表示。
+
+点线框表示接口，实线框表示普通的（具体的）类。带有空心箭头的电线表示一个特定的类实现了一个接口，实心箭头表示某个类可以生成箭头所指向类的对象。例如，任意的 Collection 接口可以生成 Iterator（也能生成普通的 Iterator，因为 List 继承自 Collection）。
 
