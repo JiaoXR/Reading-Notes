@@ -3,7 +3,10 @@ package tree.avl;
 import java.util.Comparator;
 
 /**
- * Created by jxr on 15/01/2018.
+ * AVL树
+ *
+ * @author jaxer
+ * date 15/01/2018
  */
 public class AvlTree<T> {
 
@@ -45,7 +48,7 @@ public class AvlTree<T> {
         if (node == null) {
             return false;
         }
-        /* 通过比较 x 和节点的�?, 来决定在左子树还是右子树中继续递归查找 */
+        /* 通过比较 x 和节点的值, 来决定在左子树还是右子树中继续递归查找 */
         int result = innerCompareTo(x, node.element);
         if (result < 0) {
             return contains(x, node.left);
@@ -124,14 +127,14 @@ public class AvlTree<T> {
 
     /**
      * 内部插入方法
-     * 插入时通过旋转来修正树的平衡性，并且只有x位置到根节点的路径上涉及的节点可能会被改�?
+     * 插入时通过旋转来修正树的平衡性，并且只有x位置到根节点的路径上涉及的节点可能会被改变
      * 其中插入导致不平衡的情况只要有四种：(假设Q是需要重新平衡的节点)
-     * 1.在Q左儿子的左子树插入元�?;
-     * 2.在Q左儿子的右子树插入元�?;
-     * 3.在Q右儿子的左子树插入元�?;
-     * 4.在Q右儿子的右子树插入元�?.
-     * 其中1,4是对称的情况，只需要单旋转就可以处�?;
-     * 2,3是对称的情况，需要双旋转来处�?.
+     * 1.在Q左儿子的左子树插入元素;
+     * 2.在Q左儿子的右子树插入元素;
+     * 3.在Q右儿子的左子树插入元素;
+     * 4.在Q右儿子的右子树插入元素.
+     * 其中1,4是对称的情况，只需要单旋转就可以处理;
+     * 2,3是对称的情况，需要双旋转来处理.
      *
      * @param x
      * @param tree
@@ -143,11 +146,11 @@ public class AvlTree<T> {
         }
 
         int result = innerCompareTo(x, tree.element);
-        /* 在左子树中插�? */
+        /* 在左子树中插入 */
         if (result < 0) {
             tree.left = insert(x, tree.left);
             /* 因为上一步在左子树加入新的元素，所以可能发生高度变化的是左子树.
-             * 所以当左子树高度与右子树高度相�?2时则本节点发生了不平衡的情况
+             * 所以当左子树高度与右子树高度相差2时则本节点发生了不平衡的情况
 			 */
             if (height(tree.left) - height(tree.right) == 2) {
                 /* 情况1:LL */
@@ -160,7 +163,7 @@ public class AvlTree<T> {
                 }
             }
         }
-        /* 在右子树中插�? */
+        /* 在右子树中插入 */
         else if (result > 0) {
             tree.right = insert(x, tree.right);
             /* 同上分析 */
@@ -180,7 +183,7 @@ public class AvlTree<T> {
             //这里不做任何处理
             System.err.println(x + "已存在！");
         }
-        /* 更新节点的高�?  */
+        /* 更新节点的高度  */
         tree.height = Math.max(height(tree.left), height(tree.right)) + 1;
         return tree;
     }
@@ -191,19 +194,19 @@ public class AvlTree<T> {
 
     /**
      * 移除元素x
-     * 可以近似的看作是插入操作的逆操�?,导致不平衡的情况和插入操作一样有类似的四个原因�?
+     * 可以近似的看作是插入操作的逆操作,导致不平衡的情况和插入操作一样有类似的四个原因。
      *
      * @param x
      * @param tree
      */
     private AvlNode<T> remove(T x, AvlNode<T> tree) {
-        /* 空树或没有找到要删除的元�? */
+        /* 空树或没有找到要删除的元素 */
         if (tree == null) {
             return null;
         }
 
         int result = innerCompareTo(x, tree.element);
-        /* 在左子树中删除元�? */
+        /* 在左子树中删除元素 */
         if (result < 0) {
             tree.left = remove(x, tree.left);
             /* 判断是否左子树减少元素后导致了不平衡, 此时右子树高度至少为2 */
@@ -218,7 +221,7 @@ public class AvlTree<T> {
                 }
             }
         }
-        /* 在右子树中删除元�? */
+        /* 在右子树中删除元素 */
         else if (result > 0) {
             tree.right = remove(x, tree.right);
             if (height(tree.left) - height(tree.right) == 2) {
@@ -231,9 +234,9 @@ public class AvlTree<T> {
                 }
             }
         }
-        /* 找到要删除的元素,且该节点具有左子树和右子�? */
+        /* 找到要删除的元素,且该节点具有左子树和右子树 */
         else if (tree.left != null && tree.right != null) {
-            /* 找到右子树中最小节�?,用其值替换本节点�?,并删除右子树中值最小的节点 */
+            /* 找到右子树中最小节点,用其值替换本节点值,并删除右子树中值最小的节点 */
             tree.element = findMin(tree.right);
             tree.right = remove(tree.element, tree.right);
 
@@ -258,36 +261,36 @@ public class AvlTree<T> {
     }
 
     /**
-     * 右旋�?
+     * 右旋转
      *
-     * @param t 需要调整的�?
-     * @return 调整后的�?
+     * @param t 需要调整的树
+     * @return 调整后的树
      */
     private AvlNode<T> rotateWithLeftChild(AvlNode<T> t) {
         AvlNode<T> newTree = t.left;
         t.left = newTree.right;
         newTree.right = t;
-        //更新节点的高�?
+        //更新节点的高度
         t.height = 1 + Math.max(height(t.left), height(t.right));
         newTree.height = 1 + Math.max(height(newTree.left), t.height);
         return newTree;
     }
 
     /**
-     * 左旋�?
+     * 左旋转
      */
     private AvlNode<T> rotateWithRightChild(AvlNode<T> t) {
         AvlNode<T> newTree = t.right;
         t.right = newTree.left;
         newTree.left = t;
-        //更新节点的高�?
+        //更新节点的高度
         t.height = 1 + Math.max(height(t.left), height(t.right));
         newTree.height = 1 + Math.max(height(newTree.left), t.height);
         return newTree;
     }
 
     /**
-     * 先左旋转，再右旋�?
+     * 先左旋转，再右旋转
      */
     private AvlNode<T> doubleRotateWithLeftChild(AvlNode<T> t) {
         t.left = rotateWithRightChild(t.left);
@@ -295,7 +298,7 @@ public class AvlTree<T> {
     }
 
     /**
-     * 先右旋转，再左旋�?
+     * 先右旋转，再左旋转
      */
     private AvlNode<T> doubleRotateWithRightChild(AvlNode<T> t) {
         t.right = rotateWithLeftChild(t.right);
