@@ -233,7 +233,7 @@ JMM 中的一些先行发生关系：
 
 程序一般不会直接使用内核线程，而是去使用内核线程的一种高级接口——轻量级进程（Light Weight Process，LWP），轻量级进程就是我们通常意义上的线程。它们之间的对应关系如图所示：
 
-![]
+![thread](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/JVM/LWP_KLT.png)
 
 - 轻量级进程优缺点
   - 优点
