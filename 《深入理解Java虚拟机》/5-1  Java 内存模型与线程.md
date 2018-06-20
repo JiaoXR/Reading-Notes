@@ -28,7 +28,7 @@ Java 虚拟机规范中试图定义一种 Java 内存模型（Java Memory Model,
 
 ###  12.3.1  主内存与工作内存
 
-Java 线程、主内存和工作内存三者的交互关系如图 12-2 所示（与图 12-2 对比）：
+Java 线程、主内存和工作内存三者的交互关系如图 12-2 所示（与图 12-1 对比）：
 
 ![12-2](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/JVM/working_memory.png)
 
@@ -286,8 +286,7 @@ Java 定义了 5 种线程状态，任意时间点，一个线程有且仅有其
 
 处于该状态的线程不会被分配 CPU 时间，需等待被其他线程显式唤醒。以下方法会让线程进入该状态：
 
-	1. Object.wait();
-
+1. Object.wait();
 2. Thread.join();
 3. LockSupport.park();
 
