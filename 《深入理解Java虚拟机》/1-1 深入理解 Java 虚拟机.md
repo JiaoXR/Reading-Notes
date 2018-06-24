@@ -1,6 +1,6 @@
 # 第 1 章  走近 Java
 
-###Java 技术体系
+###  Java 技术体系
 
 Sun 官方所定义的 Java 技术体系包括：
 
@@ -22,7 +22,7 @@ Sun 官方所定义的 Java 技术体系包括：
 
 
 
-### Java 虚拟机发展史
+###  Java 虚拟机发展史
 
 - Sun Classic/Exact VM
 
