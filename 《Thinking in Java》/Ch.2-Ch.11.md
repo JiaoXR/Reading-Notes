@@ -1,30 +1,58 @@
 # 第 2 章  一切都是对象
 
+###  基本类型
+
 Java 要确定每种基本类型所占存储空间的大小（不随机器硬件架构的变化而改变）。
 
-|  基本类型   |   大小    | 最小值  | 最大值  |   包装器类型   |
-| :-----: | :-----: | :--: | :--: | :-------: |
-| boolean |    -    |  -   |  -   |  Boolean  |
-|  char   | 16-bits |      |      | Character |
-|  byte   | 8 bits  | -128 | +127 |   Byte    |
-|  short  | 16 bits |      |      |   Short   |
-|   int   | 32 bits |      |      |  Integer  |
-|  long   | 64 bits |      |      |   Long    |
-|  float  | 32 bits |      |      |   Float   |
-| double  | 64 bits |      |      |  Double   |
-|  void   |    -    |  -   |  -   |   Void    |
+| 基本类型 |  大小   |  最小值   |      最大值      | 包装器类型 |
+| :------: | :-----: | :-------: | :--------------: | :--------: |
+| boolean  |    -    |     -     |        -         |  Boolean   |
+|   char   | 16-bits | Unicode o | Unicode 2^16 - 1 | Character  |
+|   byte   | 8 bits  |   - 128   |      + 127       |    Byte    |
+|  short   | 16 bits |  - 2^15   |     2^15 - 1     |   Short    |
+|   int    | 32 bits |  - 2^31   |     2^31 - 1     |  Integer   |
+|   long   | 64 bits |  - 2^63   |     2^63 - 1     |    Long    |
+|  float   | 32 bits |  IEEE754  |     IEEE754      |   Float    |
+|  double  | 64 bits |  IEEE754  |     IEEE754      |   Double   |
+|   void   |    -    |     -     |        -         |    Void    |
 
-- 高精度数字
+> PS: 
+>
+> - 所有数值类型都有正负号；
+> - boolean 类型所占存储空间的大小没有明确指定，仅定义为能够取字面值 true 或 false；
+> - 基本类型具有的包装器类，使得可以在堆中创建一个非基本对象，用来表示对应的基本类型。
 
-Java 提供了两个高精度计算的类：**BigInteger** 和 **BigDecimal** 。**BigInteger** 支持任意精度的整数，**BigDecimal** 支持任何精度的定点数。二者没有对应的基本类型。
+####  高精度数字
 
-- 方法
+- Java 提供了两个高精度计算的类：**BigInteger** 和 **BigDecimal** ；
+- **BigInteger** 支持任意精度的整数，即，运算中可以准确地表示任何大小的整数值，而不丢失任何信息；
+- **BigDecimal** 支持任何精度的定点数，例如，可以用它进行精确地货币计算；
+- 二者没有对应的基本类型；
+- 操作与基本类型相似，即，能作用于 int 或 float 的操作，同样能作用于 **BigInteger** 和 **BigDecimal**，但必须以方法调用方式，运算速度会比较慢，以速度换精度。
+
+####  数据类型默认值（成员变量）
+
+| **Data Type**          | **Default Value (for fields)** |
+| ---------------------- | ------------------------------ |
+| byte                   | 0                              |
+| short                  | 0                              |
+| int                    | 0                              |
+| long                   | 0L                             |
+| float                  | 0.0f                           |
+| double                 | 0.0d                           |
+| char                   | 'u0000'                        |
+| boolean                | false                          |
+| String (or any object) | null                           |
+
+####  方法
 
 方法名和参数列表（它们合起来被称为“方法签名”）唯一地标识出某个方法。
 
+####  其他
+
 ```java
 System.getProperties().list(System.out);
-System.out.println(System.getProperty("user.name")); // jaxer
+System.out.println(System.getProperty("user.name"));
 System.out.println(System.getProperty("java.library.path"));
 ```
 
