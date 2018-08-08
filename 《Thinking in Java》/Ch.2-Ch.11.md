@@ -7,8 +7,8 @@ Java 要确定每种基本类型所占存储空间的大小（不随机器硬件
 | 基本类型 |  大小   |  最小值   |      最大值      | 包装器类型 |
 | :------: | :-----: | :-------: | :--------------: | :--------: |
 | boolean  |    -    |     -     |        -         |  Boolean   |
-|   char   | 16-bits | Unicode o | Unicode 2^16 - 1 | Character  |
-|   byte   | 8 bits  |   - 128   |      + 127       |    Byte    |
+|   char   | 16-bits | Unicode 0 | Unicode 2^16 - 1 | Character  |
+|   byte   | 8 bits  |   - 128   |       127        |    Byte    |
 |  short   | 16 bits |  - 2^15   |     2^15 - 1     |   Short    |
 |   int    | 32 bits |  - 2^31   |     2^31 - 1     |  Integer   |
 |   long   | 64 bits |  - 2^63   |     2^63 - 1     |    Long    |
@@ -68,15 +68,43 @@ System.out.println(System.getProperty("java.library.path"));
 import static net.mindview.util.Print.*;
 ```
 
+- 关系操作符 "==" 与 "!="
+
+示例代码：
+
+```java
+Integer integer1 = new Integer(47);
+Integer integer2 = new Integer(47);
+System.out.println(integer1 == integer2); // false
+
+Integer integer1 = 47;
+Integer integer2 = 47;
+System.out.println(integer1 == integer2); // true
+```
+
+- 逻辑操作符：短路
+
+当使用逻辑操作符时，会有“短路”现象。即一旦能够明确无误地确定整个表达式的值，就不再计算表达式余下部分了。
+
+- 按位操作符
+  - & : 按位“与”；
+  - | : 按位“或”；
+  - ^ : 按位“异或”，相同为 0，不同为 1；
+  - ~ : 按位“非”；
+  - 可以与 "=" 号联合使用，例如：&=、|=、^=
+
 - 移位操作符
 
-移位操作符的对象也是二进制的“位”。
+  移位操作符的对象也是二进制的“位”。移位操作符只可用来处理整数类型。
 
-`<<`: 左移操作符；
+  - `<<`: 左移操作符
+    - 低位补 0
+  - `>>`: “有符号”右移操作符
+    - 使用“符号扩展”，若符号为正，则在高位插入 0；若符号为负，则在高位插入 1
+  - `>>>`: “无符号”右移位操作符
+    - 无论正负，都在高位插入 0
 
-`>>`: “有符号”右移操作符；
-
-`>>>`: “无符号”右移位操作符，无论正负，都在高位插入 0.
+  注意：如果对 char、byte 或 short 进行移位处理，会被转换为 int 类型，且得到的结果也为 int 类型。
 
 - sizeof()
 
