@@ -292,12 +292,9 @@ System.out.println(Arrays.toString(a)); // 输出结果：[1, 2, 3, 4, 5]
 面向过程语言中不需要选择就默认实现的绑定方式。例如 C 语言只有一种方法调用，就是前期绑定。
 
 - 多态
-
-也叫动态绑定、后期绑定或运行时绑定。在运行时根据对象的类型进行绑定。
-
-Java 中除了 static 方法和 final 方法（private 方法属于 final 方法）之外，其他所有的方法都是后期绑定。
-
-
+  - 也叫动态绑定、后期绑定或运行时绑定。在运行时根据对象的类型进行绑定。
+  - Java 中除了 static 方法和 final 方法（private 方法属于 final 方法）之外，其他所有的方法都是后期绑定。
+  - 将方法声明为 final，可以有效地“关闭”动态绑定，或者说告诉编译器不需要对其进行动态绑定。这样，编译器就可以为 final 方法调用生成更有效的代码（然而大多数情况下，这样做对程序的整体性能不会有什么改观）。
 
 ### 继承的缺陷
 
@@ -412,8 +409,6 @@ public class StaticPolymorphism {
 */
 ```
 
-
-
 ### 构造器和多态
 
 构造器不同于其他种类的方法。构造器不具有多态性（它们实际上是 static 方法，只不过该 static 声明是隐式的）。
@@ -446,13 +441,13 @@ class PortableLunch extends Meal() {
 }
 
 publci class Sandwich extends PortableLunch() {
-  	private Bread b = new Bread();
-  	private Cheese c = new Cheese();
+	private Bread b = new Bread();
+	private Cheese c = new Cheese();
   	private Lettuce l = new Lettuce();
-	Sandwich() { print("Sandwich()") }
+	Sandwich() { print("Sandwich()"); }
 	public static void main(String[] args) {
-        new Sandwich();
-    }
+		new Sandwich();
+	}
 }
 
 /* 输出结果：
@@ -470,8 +465,6 @@ publci class Sandwich extends PortableLunch() {
 1. 调用基类构造器。这个步骤会不断地反复递归下去，直到最底层的导出类。
 2. 按声明顺序调用成员的初始化方法。
 3. 调用导出类构造器的主体。
-
-
 
 - 构造器内部的多态方法的行为
 
@@ -524,11 +517,7 @@ public class PolyConstructor {
 3. 按照声明的顺序调用成员的初始化方法。
 4. 调用导出类的构造器方法。
 
-
-
 > 编写构造器一条有效地准则：“用尽可能简单的方法使对象进入正常状态；如果可以的话，避免调用其他方法。”
-
-
 
 ### 协变返回类型
 
@@ -544,15 +533,27 @@ class Wheat extends Grain {
 }
 
 class Mill {
-    Grain process(){ return new Grain(); }
+    Grain process() { return new Grain(); }
 }
 
 public class WheatMill extends Mill {
     Wheat process() { return new Wheat(); }
 }
+
+public class ReturnTest {
+    public static void main(String[] args) {
+        Mill mill = new Mill();
+        Grain grain = mill.process();
+        System.out.println(grain); // Grain
+
+        mill = new WheatMill();
+        grain = mill.process();
+        System.out.println(grain); // Wheat
+    }
+}
 ```
 
-协变返回类型允许返回更具体的 `Wheat` 类型。
+协变返回类型允许返回更具体的 Wheat 类型。
 
 
 
