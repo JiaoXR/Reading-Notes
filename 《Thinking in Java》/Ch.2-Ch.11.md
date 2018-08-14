@@ -806,8 +806,6 @@ Collection.addAll();
 
 - Map
 
-
-
 - 容器的打印
 
 数组的可打印表示需要使用 `Arrays.toString()`   方法，容器打印则无需任何帮助。
@@ -846,23 +844,18 @@ Collection.addAll();
 
   “栈”通常是指“后进先出（LIFO）”的容器。有时也称为叠加栈。
 
+- PriorityQueue : 优先级队列，声明下一个弹出元素是最需要的（具有最高优先级）。
+
   - 不推荐使用过时的 Vector, HashTable 和 Stack.
-
 - 一些方法
-
-Collections.sort();
-
-Collections.shuffle();
-
-
+  - Collections.sort();
+  - Collections.shuffle();
 
 ###  迭代器
 
 - Iterator
 
-迭代器是一个对象，它的工作是遍历并选择序列中的对象，且不必知道或关心该序列底层的结构。迭代器统一了对容器的访问方式。
-
-示例代码：
+迭代器是一个对象，它的工作是遍历并选择序列中的对象，且不必知道或关心该序列底层的结构。迭代器统一了对容器的访问方式。示例代码：
 
 ```java
 List<Pet> pets = Pets.arrayList(12);
@@ -928,6 +921,10 @@ public class ModifyingArraysAsList {
 第一种情况：Arrays.asList() 的输出被传递给了 ArrayList() 的构造器，将创建一个引用 ia 的元素的 ArrayList，因此打乱这些引用不会修改该数组。
 
 但若直接使用 Array.asList(ia) 的结果，就会修改 ia 的顺序。使用 Arrays.asList() 产生的 List 对象会使用底层数组作为其物理实现。
+
+- foreach
+  - foreach 语法除了用于数组，还可以用于任何 Collection 对象。
+  - foreach 之所以能够工作，是因为 Java SE5 引入了 Iterable 接口，该接口包含一个能够产生 Iterator 的 iterator() 方法，并且 Iterable 接口被 foreach 用来在序列中移动。任何实现 Iterable 接口的类，都可以将它用于 foreach 语句。
 
 - 小结
 
