@@ -2,17 +2,24 @@
 
 ###  13.1 不可变 String
 
-String 对象是不可变的。String 类中每一个看起来会修改 String 的方法，实际上都是创建了一个全新的 String 对象，以包含修改后的字符串内容。而最初的 String 对象则丝毫未动。
-
-每当把 String 对象作为方法的参数时，都会复制一份引用，而该引用所指的对象其实一直待在单一的物理位置上，从未动过。
+- String 对象是不可变的。
+- String 类中每一个看起来会修改 String 的方法（例如 `toUpperCase()`），实际上都是创建了一个全新的 String 对象，以包含修改后的字符串内容。而最初的 String 对象则丝毫未动。
+- 每当把 String 对象作为方法的参数时，都会复制一份引用，而该引用所指的对象其实一直待在单一的物理位置上，从未动过。
 
 ###  13.2 重载 "+" 与 StringBuilder
 
-两种方式生成 String，示例代码：
+- 操作符重载
+
+用于 String 的 "+" 与 "+=" 是 Java 中仅有的两个重载过的操作符，而 Java 并不允许程序员重载任何操作符。
+
+- 两种方式生成 String，示例代码：
 
 ```java
 public class WitherStringBuilder {
-  	//编译器内部会生成多个 StringBuilder 对象
+  	/**
+     * 隐式使用 StringBuilder
+     * 该方式会创建多个 StringBuilder 对象
+     */
     public String implicit(String[] fields) {
         String result = "";
         for (String field : fields) {
@@ -21,8 +28,10 @@ public class WitherStringBuilder {
         return result;
     }
     
-  	//显式地创建 StringBuilder
-	//只生成一个 StringBuilder 对象
+    /**
+     * 显式使用 StringBuilder
+     * 只生产一个 StringBuilder 对象
+     */
     public String explicit(String[] fields) {
         StringBuilder result = new StringBuilder();
         for (String field : fields) {
@@ -30,13 +39,12 @@ public class WitherStringBuilder {
         }
         return result.toString();
     }
-
 }
 ```
 
 PS: 可以通过 `javap -c WitherStringBuilder` 命令，反编译该类，以查看其字节码。
 
-显式地创建 StringBuilder 还允许预先为其指定大小。若已知最终字符串大概有多长，那么预先指定 StringBuilder 的大小可以避免多次重新分配缓冲。
+- 显式地创建 StringBuilder 还允许预先为其指定大小。若已知最终字符串大概有多长，那么预先指定 StringBuilder 的大小可以避免多次重新分配缓冲。
 
 > 因此，当为一个类编写 toString() 方法时，若字符串操作比较简单，可以信赖编译器；
 >
@@ -51,8 +59,14 @@ public class InfiniteRecursion {
 
     @Override
     public String toString() {
-        //这样会产生 toString() 的递归
-        return " InfiniteRecursion address: " + this + "\n";
+        /*
+         * 这里发生了自动类型转换：由 InfiniteRecursion 类型转为 String 类型。
+         * 由于编译器看到一个 String 对象后面跟着一个 "+"，之后的对象不再是 String，
+         * 于是编译器试着将 this 转为一个 String，会调用 this 的 toString 方法，
+         * 这样会产生 toString 递归调用，导致 StackOverflowError
+         */
+//        return " InfiniteRecursion address: " + this + "\n";
+        return super.toString(); //ok
     }
 
     public static void main(String[] args) {
@@ -67,27 +81,22 @@ public class InfiniteRecursion {
 
 ###  13.5 格式化输出
 
-`System.out.format()` 与 `System.out.printf()` 是等价的。
+- `System.out.format()` 与 `System.out.printf()` 是等价的。
+- Formatter 类：Java 中，所有新的格式化功能都由 `java.util.Formatter` 类处理。
+- Formatter 的构造器经过重载可以接受多种输出目的地，不过最常用的还是 PrintStream(), OutputStream 和 File.
+- Formatter 常用的类型转换字符：
 
-Formatter 类：Java 中，所有新的格式化功能都由 `java.util.Formatter` 类处理。
-
-Formatter 的构造器经过重载可以接受多种输出目的地，不过最常用的还是 PrintStream(), OutputStream 和 File.
-
-Formatter 常用的类型转换：
-
-|      |            |      |           |
-| ---- | ---------- | ---- | --------- |
+| 字符 | 类型               | 字符 | 类型               |
+| ---- | ------------------ | ---- | ------------------ |
 | d    | 整数型（十进制）   | e    | 浮点数（科学计数） |
-| c    | Unicode 字符 | x    | 整数（十六进制）  |
-| b    | Boolean 值  | h    | 散列码（十六进制） |
-| s    | String     | %    | 字符 '%'    |
-| f    | 浮点数（十六进制）  |      |           |
+| c    | Unicode 字符       | x    | 整数（十六进制）   |
+| b    | Boolean 值         | h    | 散列码（十六进制） |
+| s    | String             | %    | 字符 '%'           |
+| f    | 浮点数（十六进制） |      |                    |
 
-注意 b 转化：对于 boolean 基本类型或 Boolean 对象，其结果是对应的 true 或 false。但是，对于其他类型的参数，只要该参数不为 null，其转换的结果就为 true。
+> 注意 b 转化：对于 boolean 基本类型或 Boolean 对象，其结果是对应的 true 或 false。但是，对于其他类型的参数，只要该参数不为 null，其转换的结果就为 true。
 
-
-
-String.format() 是一个 static 方法，它接受与 Formatter.format() 方法一样的参数，但返回一个 String 对象。
+- String.format() 是一个 static 方法，它接收与 Formatter.format() 方法一样的参数，但返回一个 String 对象。
 
 ###  13.6 正则表达式
 
