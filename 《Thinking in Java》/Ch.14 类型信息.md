@@ -4,7 +4,7 @@ Java 可以让我们在运行时识别对象和类的信息，主要有两种方
 1. “传统的” RTTI，它假定我们在编译时已经知道了所有的类型；
 2. “反射”机制，允许我们在运行时发现和使用类的信息。
 
-####  类字面常量
+###  类字面常量
 
 - Java 提供了另一种方法来生成对 Class 对象的引用，即使用类字面常量。例如：`FancyToy.class`
 - 这样做更简单、更安全，因为它在编译时会受到检查（因此不需要置于 try 语句块中）。并且根除了对 `forName()` 方法的调用，因此更高效。
@@ -40,9 +40,15 @@ Java 可以让我们在运行时识别对象和类的信息，主要有两种方
 
 ![](https://github.com/JiaoXR/Java-Learning/blob/master/Foundation/Java%20%E5%8F%8D%E5%B0%84%E6%9C%BA%E5%88%B6.md)
 
+###  动态代理
 
+Java 的动态代理比代理的思想更向前迈进了一步，因为它可以动态地创建代理并动态地处理对所代理方法的调用。在动态代理上所做的所有调用都会被重定向到单一的调用处理器上，它的工作是揭示调用的类型并确定相应的对策。
 
+示例代码：
 
+![](https://github.com/JiaoXR/Reading-Notes/tree/master/codes/TestCode/src/com/jaxer/example/rtti/proxy/dynamic)
 
+###  空对象
 
+###  接口与类型信息
 
