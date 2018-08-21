@@ -1,4 +1,4 @@
-package com.jaxer.example.collection;
+package com.jaxer.example.collection.simple;
 
 import java.util.HashMap;
 import java.util.Map;
