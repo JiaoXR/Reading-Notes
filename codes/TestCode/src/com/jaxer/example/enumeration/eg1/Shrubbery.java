@@ -1,4 +1,4 @@
-package com.jaxer.example.enumeration;
+package com.jaxer.example.enumeration.eg1;
 
 /**
  * Created by jxr on 6:29 PM 2018/8/27

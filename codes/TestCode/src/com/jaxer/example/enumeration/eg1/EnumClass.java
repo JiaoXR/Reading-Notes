@@ -1,6 +1,6 @@
-package com.jaxer.example.enumeration;
+package com.jaxer.example.enumeration.eg1;
 
-import static com.jaxer.example.enumeration.Shrubbery.*;
+import static com.jaxer.example.enumeration.eg1.Shrubbery.*;
 
 /**
  * Created by jxr on 6:30 PM 2018/8/27
