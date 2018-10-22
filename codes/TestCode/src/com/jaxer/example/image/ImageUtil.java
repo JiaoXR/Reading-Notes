@@ -17,8 +17,8 @@ import java.net.URL;
 public class ImageUtil {
 
     private static final String saveFilePath = "~/Desktop/pics/poster1.png";
-    private static final int IMG_WIDTH_DEFAULT = 675; //用户上传图片默认宽度
-    private static final int IMG_HEIGHT_DEFAULT = 500; //用户上传图片默认高度
+    private static final int IMG_WIDTH = 675; //用户上传图片默认宽度
+    private static final int IMG_HEIGHT = 500; //用户上传图片默认高度
 
     public static void main(String[] args) throws IOException {
         String sourceFilePath = "http://image-demo.img-cn-hangzhou.aliyuncs.com/example.jpg";
@@ -119,7 +119,7 @@ public class ImageUtil {
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
         BufferedImage appendImage = ImageIO.read(inputStream);
-        g2d.drawImage(appendImage, x, y, IMG_WIDTH_DEFAULT, IMG_HEIGHT_DEFAULT, null);
+        g2d.drawImage(appendImage, x, y, IMG_WIDTH, IMG_HEIGHT, null);
         g2d.dispose();
         return originImg;
     }
@@ -144,6 +144,50 @@ public class ImageUtil {
         return originImage;
     }
 
+    public static void myDrawString(BufferedImage originImage, String str, Font font, Color color, int x, int y, boolean isBig) {
+        String tempStr;
+        int tempX = x;
+        int fontSpace = 64;
+        if (isBig) {
+            fontSpace = 30;
+        }
+        while (str.length() > 0) {
+            tempStr = str.substring(0, 1);
+            str = str.substring(1, str.length());
+            originImage = appendText(originImage, tempStr, font, color, tempX, y);
+            if ("“".equals(tempStr)) {
+                tempX = tempX + 15;
+            } else {
+                if ("i".equals(tempStr) || "I".equals(tempStr) || "1".equals(tempStr)) {
+                    tempX = tempX + 10;
+                } else {
+                    tempX = tempX + fontSpace;
+                }
+
+            }
+        }
+    }
+
+    /**
+     * 在 BufferedImage 上添加文本（推荐：间距更合理，上面的重载方法间距固定，英文字母看起来有间隔）
+     *
+     * @param originImage BufferedImage
+     * @param str         要添加的文本
+     * @param font        指定字体
+     * @param color       字体颜色
+     * @param x           横坐标
+     * @param y           纵坐标
+     */
+    public static void myDrawString(BufferedImage originImage, String str, Font font, Color color, int x, int y) {
+        int tempX = x;
+        FontMetrics fm = sun.font.FontDesignMetrics.getMetrics(font);
+        char[] charArray = str.toCharArray();
+        for (char c : charArray) {
+            originImage = appendText(originImage, String.valueOf(c), font, color, tempX, y);
+            tempX = tempX + fm.charWidth(c);
+        }
+    }
+
     /**
      * 对字节数组字符串进行Base64解码，并生成字节数组
      *
@@ -158,5 +202,67 @@ public class ImageUtil {
             }
         }
         return bytes;
+    }
+
+    /**
+     * 获取裁剪后的 BufferedImage
+     *
+     * @param imgStr Base64格式字符串
+     */
+    public static BufferedImage convert2CroppedImg(String imgStr) throws IOException {
+        //若传的图片以data开头，将其去除
+//        imgStr = StringUtil.convertBase64Str(imgStr);
+        BASE64Decoder decoder = new BASE64Decoder();
+        byte[] bytes = decoder.decodeBuffer(imgStr);
+        for (int i = 0; i < bytes.length; ++i) {
+            if (bytes[i] < 0) {
+                bytes[i] += 256;
+            }
+        }
+        ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+        BufferedImage croppedImage = ImageIO.read(in);
+        if (croppedImage == null) {
+            return null;
+        }
+        int width = croppedImage.getWidth();
+        int height = croppedImage.getHeight();
+        //注意这里比较的宽高比
+        if (width > IMG_WIDTH && height > IMG_HEIGHT) { //大图等比例缩放
+            if ((width / height) > (IMG_WIDTH / IMG_HEIGHT)) { //横图
+                Image scaledImage = croppedImage.getScaledInstance(width * IMG_HEIGHT / height, IMG_HEIGHT, BufferedImage.SCALE_SMOOTH);
+                BufferedImage scaledBufferedImage = convertToBufferedImage(scaledImage);
+                croppedImage = scaledBufferedImage.getSubimage((scaledBufferedImage.getWidth() - IMG_WIDTH) / 2, 0, IMG_WIDTH, IMG_HEIGHT);
+            } else { //竖图或正方形
+                Image scaledImage = croppedImage.getScaledInstance(IMG_WIDTH, height * IMG_WIDTH / width, BufferedImage.SCALE_SMOOTH);
+                BufferedImage scaledBufferedImage = convertToBufferedImage(scaledImage);
+                croppedImage = scaledBufferedImage.getSubimage(0, (scaledBufferedImage.getHeight() - IMG_HEIGHT) / 2, IMG_WIDTH, IMG_HEIGHT);
+            }
+        } else if (width > IMG_WIDTH && height < IMG_HEIGHT) { //宽度超过，高度不足
+            Image image = croppedImage.getScaledInstance(width * IMG_HEIGHT / height, IMG_HEIGHT, BufferedImage.SCALE_SMOOTH);
+            croppedImage = convertToBufferedImage(image);
+        } else if (width < IMG_WIDTH && height > IMG_HEIGHT) { //宽度不足，高度超过
+            Image image = croppedImage.getScaledInstance(IMG_WIDTH, height * IMG_WIDTH / width, BufferedImage.SCALE_SMOOTH);
+            croppedImage = convertToBufferedImage(image);
+        }
+        //缩放后裁剪
+        if (croppedImage.getWidth() > IMG_WIDTH || croppedImage.getHeight() > IMG_HEIGHT) {
+            croppedImage = croppedImage.getSubimage((croppedImage.getWidth() - IMG_WIDTH) / 2, (croppedImage.getHeight() - IMG_HEIGHT) / 2,
+                    IMG_WIDTH, IMG_HEIGHT);
+        }
+        return croppedImage;
+    }
+
+    /**
+     * Image 转为 BufferedImage
+     */
+    private static BufferedImage convertToBufferedImage(Image image) {
+        if (image instanceof BufferedImage) {
+            return (BufferedImage) image;
+        }
+        BufferedImage bufferedImage = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D bGr = bufferedImage.createGraphics();
+        bGr.drawImage(image, 0, 0, null);
+        bGr.dispose();
+        return bufferedImage;
     }
 }
