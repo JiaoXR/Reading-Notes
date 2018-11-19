@@ -13,7 +13,7 @@ MySQL 服务器逻辑架构图如下：
 
 ###  1.1.1  连接管理与安全性
 
-- 每个客户端连接都会在服务器进程中拥有一个线程，这个连接的查询只会在这个单独的线程中执行，该线程只能轮流在某个 CPU 核心或者 CPU 中运行。服务器会负责缓存线程，因此不需要为每一个新建的连接创建或校徽线程。
+- 每个客户端连接都会在服务器进程中拥有一个线程，这个连接的查询只会在这个单独的线程中执行，该线程只能轮流在某个 CPU 中运行。服务器会负责缓存线程，因此不需要为每一个新建的连接创建或销毁线程。
 
 ###  1.1.2  优化与执行
 
@@ -122,14 +122,21 @@ SET AUTOCOMMIT = 1;
 | ------------- | ----- |
 | autocommit    | ON    |
 
-- 隔离级别
+- 查看&设置隔离级别
 
-  - 可以通过 `SET TRANSACTION ISOLATION LEVEL` 设置隔离级别；新的隔离级别会在下一个事务开始时生效；
-  - 可以在配置文件设置整个数据库的隔离级别，也可以只改变当前会话的隔离级别
+```mysql
+-- 查看当前会话隔离级别
+SELECT @@TX_ISOLATION;
 
-  ```mysql
-  SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITED;
-  ```
+-- 查看系统隔离级别
+SELECT @@GLOBAL.TX_ISOLATION;
+
+-- 设置当前会话隔离级别(可重读)，新的隔离级别会在下一个事务开始时生效
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+-- 设置系统隔离级别
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+```
 
 ####  在事务中混合使用存储引擎
 
