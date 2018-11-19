@@ -8,6 +8,8 @@ MySQL 服务器逻辑架构图如下：
 
 ![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/MySQL/mysql_architecture.png)
 
+![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/MySQL/mysql_architecture2.png)
+
 - 其中第二层包含了大多数 MySQL 的核心服务功能，包括查询解析、分析、优化、缓存以及所有的内置函数（例如，日期、时间、数字和加密函数），所有跨存储引擎的功能都在这一层实现：存储过程、触发器、视图等。
 - 存储引擎负责 MySQL 中数据的存储和提取，每个存储引擎都有它的优势和劣势。不同存储引擎之间也不会相互通信，只是简单地响应上层服务器的请求。
 
@@ -125,8 +127,10 @@ SET AUTOCOMMIT = 1;
 - 查看&设置隔离级别
 
 ```mysql
--- 查看当前会话隔离级别
+-- 查看当前会话隔离级别(注意：8.0以后用第三条)
 SELECT @@TX_ISOLATION;
+SHOW VARIABLES LIKE 'TX_ISOLATION';
+SHOW VARIABLES LIKE 'TRANSACTION_ISOLATION';
 
 -- 查看系统隔离级别
 SELECT @@GLOBAL.TX_ISOLATION;
@@ -134,7 +138,7 @@ SELECT @@GLOBAL.TX_ISOLATION;
 -- 设置当前会话隔离级别(可重读)，新的隔离级别会在下一个事务开始时生效
 SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 
--- 设置系统隔离级别
+-- 设置系统隔离级别(可重读)
 SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 ```
 
@@ -158,29 +162,55 @@ SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
   - 一列保存了行的创建时间，另一列保存过期（或删除）时间；
   - 但实际存储的是系统版本号（system version number），每开始一个新事务，版本号会递增，事务开始时刻的版本号会作为事务的版本号，用来和查询到的每行记录的版本号进行比较；
 
+##  1.5  MySQL 的存储引擎
 
+- 在文件系统中，MySQL 将每个数据库（也可称为 schema）保存为数据目录下的一个子目录。创建表时，MySQL 会在数据库子目录下创建一个和表同名的 `.frm` 文件保存表的定义。
+- 查看表的信息：
 
+```mysql
+SHOW TABLE STATUS;
+```
 
+###  1.5.1  InnoDB 存储引擎
 
+- InnoDB 是 MySQL 的默认事务型引擎，也是最重要、使用最广泛的存储引擎。除非有非常特别的原因需要使用其他的存储引擎，否则应优先考虑 InnoDB 引擎。
+- InnoDB 采用 MVCC 来支持高并发，并且实现了四个标准的隔离级别（默认为 REPEATABLE READ），并且通过间隙锁（next-key locking）策略防止出现幻读【间隙锁使得 InnoDB 不仅仅锁定查询涉及的行，还会对索引中的间隙进行锁定，以防止幻影行的插入】。
+- InnoDB 表示基于聚簇索引建立的，其结构与 MySQL 的其他存储引擎有很大的不同，聚簇索引对主键查询有很高的性能。
 
+###  1.5.2  MyISAM 存储引擎
 
+- MySQL 5.1 及以前，MyISAM 是默认的存储引擎。
+- MyISAM 特点：
+  - 全文索引、压缩、空间函数（GIS）等；
+  - 不支持事务和行级锁，崩溃后无法安全恢复；
 
+###  1.5.3  MySQL 内建的其他存储引擎
 
+Archive、Blackhole、CSV、Federated、Memory、NDB
 
+###  1.5.4  第三方存储引擎
 
+OLTP 等几十个
 
+###  1.5.5  选择合适的引擎
 
+- 大部分情况下，InnoDB 都是正确的选择，MySQL 5.5 开始将 InnoDB 作为默认的存储引擎。
 
+###  1.5.6  转换表的引擎
 
+- ALTER TABLE
 
+  示例代码：
 
+  ```mysql
+  ALTER TABLE my_table ENGINE=InnoDB;
+  ```
 
+  - 优点：使用简单；
+  - 缺点：耗时。MySQL 会按行将数据从原表复制到一张新的表中，复制期间可能会消耗系统所有的 I/O 能力，同时原表会加上读锁。
+  - 如果转换表的存储引擎，将会失去和原引擎相关的所有特性。
 
+- 导出与导入
 
-
-
-
-
-
-
+- 创建与查询（CREATE 和 SELECT）
 
