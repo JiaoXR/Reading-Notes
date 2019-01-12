@@ -1,4 +1,4 @@
-#  Spring IoC 容器初概述
+#  Spring IoC 容器概述
 
 > IoC: Inversion of Control, 控制反转（”依赖对象的获得被反转了“），最常见的方式 DI（Dependency Injection, 依赖注入）。
 
@@ -24,20 +24,20 @@ ApplicationContext 接口结构如下：
 
 大概包括三个步骤：BeanDefinition 的 Resource 定位、载入和注册。
 
-###  Resource 的定位
+###  1. Resource 的定位
 
 - 定位用户定义 Bean 的文件；
 - 由 ResourceLoader 通过 Resource 接口完成；
-- 相关类和接口：Resource (FileSystemResource, ClassPathResource 等)、ResourceLoader
+- 相关类和接口：ResourceLoader、Resource (FileSystemResource, ClassPathResource 等)
 
-###  BeanDefinition 的载入
+###  2. BeanDefinition 的载入
 
 - 把用户在文件中定义好的 Bean 转为 Spring IoC 内部的数据结构（BeanDefinition）
 - 相关类和接口：BeanDefinition
 
-###  BeanDefinition 的注册
+###  3. BeanDefinition 的注册
 
-- 通过 BeanDefinitionRegistry，将 BeanDefinition 注册到 IoC 容器的 HashMap 中。
+- 通过 BeanDefinitionRegistry，将 BeanDefinition 注册到 IoC 容器维护的 Map 中
 
 
 
