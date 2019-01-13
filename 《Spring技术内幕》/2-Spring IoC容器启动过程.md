@@ -1,8 +1,6 @@
 #  Spring IoC 容器启动过程
 
-之前对 IoC 容器的启动过程做了一个概述，
-
-![1-Spring IoC容器概述](https://github.com/JiaoXR/Reading-Notes/blob/master/%E3%80%8ASpring%E6%8A%80%E6%9C%AF%E5%86%85%E5%B9%95%E3%80%8B/1-Spring%20IoC%E5%AE%B9%E5%99%A8%E6%A6%82%E8%BF%B0.md)
+之前对 IoC 容器的启动过程做了一个概述  [1-Spring IoC容器概述](https://github.com/JiaoXR/Reading-Notes/blob/master/%E3%80%8ASpring%E6%8A%80%E6%9C%AF%E5%86%85%E5%B9%95%E3%80%8B/1-Spring%20IoC%E5%AE%B9%E5%99%A8%E6%A6%82%E8%BF%B0.md)
 
 这里主要以 `ApplicationContext` 的一个实现类  `FileSystemXmlApplicationContext` 为例，详细说明 Spring IoC 容器的启动过程。`FileSystemXmlApplicationContext` 类的继承结构如下图所示：
 
