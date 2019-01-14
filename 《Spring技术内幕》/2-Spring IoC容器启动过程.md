@@ -296,9 +296,11 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 }
 ```
 
-可以看到这里初始化了一个 `DefaultListableBeanFactory` 实例，也就是 Spring 默认的 IoC 容器。
+可以看到这里初始化了一个 `DefaultListableBeanFactory` 实例，也就是 Spring 默认的 IoC 容器。时序图如下：
 
-BeanFactory 实例创建后，开始执行 `loadBeanDefinitions` 方法，从名字可以看出其作用是载入 `BeanDefinition`。该方法在 `AbstractRefreshableApplicationContext` 中也是一个抽象方法，具体交由 `AbstractXmlApplicationContext` 实现，代码如下：
+![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC-FileSystemXmlApplicationContext-1.png)
+
+BeanFactory 实例创建后，开始执行 `loadBeanDefinitions` 方法，从名字可以看出其作用是载入 `BeanDefinition`。该方法在 `AbstractRefreshableApplicationContext` 中也是一个抽象方法，具体交由 `AbstractXmlApplicationContext` 来实现，代码如下：
 
 ```java
 public abstract class AbstractXmlApplicationContext extends AbstractRefreshableConfigApplicationContext {
@@ -339,7 +341,7 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 
 ![XmlBeanDefinitionReader](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/XmlBeanDefinitionReader.png)
 
-
+上面两个 `XmlBeanDefinitionReader` 的 `loadBeanDefinitions` 方法在其父类 `AbstractBeanDefinitionReader` 中，如下：
 
 ```java
 public abstract class AbstractBeanDefinitionReader implements BeanDefinitionReader, EnvironmentCapable {
@@ -368,7 +370,7 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 }
 ```
 
-实际上这两个 `loadBeanDefinitions` 方法最后还是由子类 `XmlBeanDefinitionReader` 实现，如下：
+实际上这两个 `loadBeanDefinitions` 方法最后还是由子类 `XmlBeanDefinitionReader` 实现：
 
 ```java
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
@@ -408,7 +410,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		try {
 			InputStream inputStream = encodedResource.getResource().getInputStream();
 			try {
-                // 读取 XML 文件
+                // 通过 IO 操作读取 XML 文件
 				InputSource inputSource = new InputSource(inputStream);
 				if (encodedResource.getEncoding() != null) {
 					inputSource.setEncoding(encodedResource.getEncoding());
@@ -485,9 +487,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 }
 ```
 
-`registerBeanDefinitions` 由 `BeanDefinitionDocumentReader` 的实现类 `DefaultBeanDefinitionDocumentReader` 实现，
-
-
+`registerBeanDefinitions` 由 `BeanDefinitionDocumentReader` 的实现类 `DefaultBeanDefinitionDocumentReader` 完成：
 
 ```java
 public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocumentReader {
@@ -833,7 +833,7 @@ public class BeanDefinitionParserDelegate {
 }
 ```
 
-上述方法解析后，得到一个 `BeanDefinitionHolder` 类，里面包含了解析得到的 `BeanDefinition`，然后通过 `BeanDefinitionReaderUtils.registerBeanDefinition` 注册该 `BeanDefinition`，
+上述方法解析后，得到一个 `BeanDefinitionHolder` 类，里面包含了解析得到的 `BeanDefinition`，然后通过 `BeanDefinitionReaderUtils.registerBeanDefinition` 注册该 `BeanDefinition`：
 
 ```java
 public abstract class BeanDefinitionReaderUtils {
@@ -950,8 +950,6 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 ```
 
 可以看到这里将 BeanDefinition 注册到了一个 ConcurrentHashMap 中，其中 key 是 beanName，value 是 BeanDefinition。
-
-
 
 
 
