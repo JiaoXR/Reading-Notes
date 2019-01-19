@@ -6,9 +6,9 @@
 
 ![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/FileSystemXmlApplicationContext.png)
 
-> PS: 本代码 Spring 版本为 5.1.3.RELEASE.
+> PS: 此处 Spring 版本为 5.1.3.RELEASE.
 
-##  Spring IoC 容器启动过程
+##  Spring IoC 容器的启动过程
 
 ###  准备工作
 
@@ -16,6 +16,7 @@
 
 ```java
 ApplicationContext context = new ClassPathXmlApplicationContext("classpath:beans.xml");
+context.getBean("employeeService", EmployeeService.class);
 ```
 
 其中 `beans.xml` 是 bean 的配置文件，示例代码：
@@ -35,12 +36,23 @@ ApplicationContext context = new ClassPathXmlApplicationContext("classpath:beans
 
 我们以断点形式追踪 IoC 容器的初始化过程。
 
-- `FileSystemXmlApplicationContext` 有多个构造器，但最终都是调用下面这个构造器进行实际操作的：
+- `FileSystemXmlApplicationContext` 有多个构造器，但最终都是通过调用如下构造器进行实际操作的：
 
 ```java
 public class FileSystemXmlApplicationContext extends AbstractXmlApplicationContext {
     // 其他构造器
-    
+	
+	/**
+	 * Create a new FileSystemXmlApplicationContext with the given parent,
+	 * loading the definitions from the given XML files.
+	 * @param configLocations array of file paths
+	 * @param refresh whether to automatically refresh the context,
+	 * loading all bean definitions and creating all singletons.
+	 * Alternatively, call refresh manually after further configuring the context.
+	 * @param parent the parent context
+	 * @throws BeansException if context creation failed
+	 * @see #refresh()
+	 */
     public FileSystemXmlApplicationContext(
 			String[] configLocations, boolean refresh, @Nullable ApplicationContext parent) throws BeansException {
 
@@ -53,7 +65,9 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 }
 ```
 
-其中 `refresh()` 方法是整个 IoC 容器启动（实际是重启）的核心方法。该方法内部调用比较复杂，为了有个整体认识，便于分析，这里贴一个方法调用的时序图：
+其中 `refresh()` 方法是整个 IoC 容器启动（实际是重启）的核心方法。
+
+该方法内部调用比较复杂，为了有个整体认识，便于分析，先贴一个方法调用时序图（顺序从左到右）：
 
 ![IoC-FileSystemXmlApplicationContext](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC-FileSystemXmlApplicationContext.png)
 
@@ -64,7 +78,10 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 ```java
 public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		implements ConfigurableApplicationContext {
-		
+	
+	/** ResourcePatternResolver used by this context. */
+	private ResourcePatternResolver resourcePatternResolver;
+
 	public AbstractApplicationContext(@Nullable ApplicationContext parent) {
 		this();
 		setParent(parent);
@@ -99,7 +116,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 ####  2. setConfigLocations(configLocations)
 
-该方法调用了父类 `AbstractRefreshableConfigApplicationContext` 的实现，如下：
+该方法是父类 `AbstractRefreshableConfigApplicationContext` 的方法，如下：
 
 ```java
 public abstract class AbstractRefreshableConfigApplicationContext extends AbstractRefreshableApplicationContext
@@ -108,6 +125,10 @@ public abstract class AbstractRefreshableConfigApplicationContext extends Abstra
 	@Nullable
 	private String[] configLocations;
 
+	/**
+	 * Set the config locations for this application context.
+	 * If not set, the implementation may use a default as appropriate.
+	 */
 	public void setConfigLocations(@Nullable String... locations) {
 		if (locations != null) {
 			Assert.noNullElements(locations, "Config locations must not be null");
@@ -127,11 +148,14 @@ public abstract class AbstractRefreshableConfigApplicationContext extends Abstra
 
 ####  3. refresh()
 
-`refresh()` 方法实际是父类 `AbstractApplicationContext` 的 `refresh()` 方法，实现如下：
+`refresh()` 实际是父类 `AbstractApplicationContext` 的方法，实现如下：
 
 ```java
 public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		implements ConfigurableApplicationContext {
+
+	/** Synchronization monitor for the "refresh" and "destroy". */
+	private final Object startupShutdownMonitor = new Object();
 
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
@@ -201,7 +225,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 }
 ```
 
-`prepareRefresh()` 方法主要做了一些准备工作：记录开始时间，设置状态变量等，代码如下：
+`prepareRefresh()` 方法主要做一些准备工作：记录开始时间，设置状态变量等，源码注释很详细，代码如下：
 
 ```java
 public abstract class AbstractRefreshableConfigApplicationContext extends AbstractRefreshableApplicationContext
@@ -216,10 +240,23 @@ public abstract class AbstractRefreshableConfigApplicationContext extends Abstra
 	@Nullable
 	private Set<ApplicationEvent> earlyApplicationEvents;
     
+	/**
+	 * Prepare this context for refreshing, setting its startup date and
+	 * active flag as well as performing any initialization of property sources.
+	 */    
 	protected void prepareRefresh() {
 		this.startupDate = System.currentTimeMillis();
 		this.closed.set(false);
 		this.active.set(true);
+
+		if (logger.isDebugEnabled()) {
+			if (logger.isTraceEnabled()) {
+				logger.trace("Refreshing " + this);
+			}
+			else {
+				logger.debug("Refreshing " + getDisplayName());
+			}
+		}		
 
 		// Initialize any placeholder property sources in the context environment
 		initPropertySources();
@@ -235,7 +272,7 @@ public abstract class AbstractRefreshableConfigApplicationContext extends Abstra
 }
 ```
 
-接下来通过 `obtainFreshBeanFactory()` 方法创建一个 `BeanFactory` 实例，如下：
+接下来通过 `obtainFreshBeanFactory()` 方法获取一个 `BeanFactory` 实例，如下：
 
 ```java
 public abstract class AbstractRefreshableConfigApplicationContext extends AbstractRefreshableApplicationContext
@@ -252,11 +289,12 @@ public abstract class AbstractRefreshableConfigApplicationContext extends Abstra
 		return getBeanFactory();
 	}
 	
+	// 抽象方法，实现交给子类
 	protected abstract void refreshBeanFactory() throws BeansException, IllegalStateException;
 }
 ```
 
-实际上该方法是一个抽象方法，具体实现由子类 `AbstractRefreshableApplicationContext` 完成，如下：
+该方法其实是一个抽象方法，具体实现由其子类 `AbstractRefreshableApplicationContext` 完成，如下：
 
 ```java
 public abstract class AbstractRefreshableApplicationContext extends AbstractApplicationContext {
@@ -274,6 +312,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			closeBeanFactory();
 		}
 		try {
+            // 该方法创建了一个 DefaultListableBeanFactory 实例
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
 			beanFactory.setSerializationId(getId());
 			customizeBeanFactory(beanFactory);
@@ -291,20 +330,32 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 		return new DefaultListableBeanFactory(getInternalParentBeanFactory());
 	}
     
+    // 这里是使用 BeanDefinitionReader 载入 Bean 定义的地方
+    // 因为允许多种载入方式(XML 最常见)，因此这里是抽象方法，具体实现交给子类
 	protected abstract void loadBeanDefinitions(DefaultListableBeanFactory beanFactory)
 			throws BeansException, IOException;
 }
 ```
 
-可以看到这里初始化了一个 `DefaultListableBeanFactory` 实例，也就是 Spring 默认的 IoC 容器。时序图如下：
+可以看到这里初始化了一个 `DefaultListableBeanFactory` 实例，也是 Spring 默认的 IoC 容器。
 
-![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC-FileSystemXmlApplicationContext-1.png)
+目前为止，已经创建了 BeanFactory，过程还不是很复杂，但这只是开始🤣。为了便于理解，画了一个上述调用过程的时序图，如下：
 
-BeanFactory 实例创建后，开始执行 `loadBeanDefinitions` 方法，从名字可以看出其作用是载入 `BeanDefinition`。该方法在 `AbstractRefreshableApplicationContext` 中也是一个抽象方法，具体交由 `AbstractXmlApplicationContext` 来实现，代码如下：
+![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC-Sequence-Diagram-1.png)
+
+
+
+BeanFactory 实例创建后，开始执行 `loadBeanDefinitions` 方法，从名字可以看出其作用是载入 `BeanDefinition`。该方法在 `AbstractRefreshableApplicationContext` 中也是一个抽象方法，由于此处读取的是 XML 配置，具体交由 `AbstractXmlApplicationContext` 来实现，代码如下：
 
 ```java
 public abstract class AbstractXmlApplicationContext extends AbstractRefreshableConfigApplicationContext {
     
+	/**
+	 * Loads the bean definitions via an XmlBeanDefinitionReader.
+	 * @see org.springframework.beans.factory.xml.XmlBeanDefinitionReader
+	 * @see #initBeanDefinitionReader
+	 * @see #loadBeanDefinitions
+	 */    
 	@Override
 	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
 		// Create a new XmlBeanDefinitionReader for the given BeanFactory.
@@ -322,13 +373,13 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 		loadBeanDefinitions(beanDefinitionReader);
 	}
 
-    // 读取 BeanDefinition 由 XmlBeanDefinitionReader 来完成
-    // 有两个方法：分别是读取 Resource[] 和 String[] 类型，由父类 AbstractBeanDefinitionReader 实现
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
+        // 以 Resource 方式获得配置文件的资源位置
 		Resource[] configResources = getConfigResources();
 		if (configResources != null) {
 			reader.loadBeanDefinitions(configResources);
 		}
+        // 以 String 的形式获取配置文件的位置
 		String[] configLocations = getConfigLocations();
 		if (configLocations != null) {
 			reader.loadBeanDefinitions(configLocations);
@@ -337,11 +388,54 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 }
 ```
 
-这里创建了一个 `BeanDefinitionReader` 的实例对象 `XmlBeanDefinitionReader`，用于读取定义 bean 的文件。`XmlBeanDefinitionReader` 类继承结构如下：
+这里创建了一个 `BeanDefinitionReader` 的实例对象 `XmlBeanDefinitionReader`，用于读取定义 bean 的文件。`XmlBeanDefinitionReader` 类继承结构与相关代码如下：
 
 ![XmlBeanDefinitionReader](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/XmlBeanDefinitionReader.png)
 
-上面两个 `XmlBeanDefinitionReader` 的 `loadBeanDefinitions` 方法在其父类 `AbstractBeanDefinitionReader` 中，如下：
+```java
+public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
+	/**
+	 * Create new XmlBeanDefinitionReader for the given bean factory.
+	 * @param registry the BeanFactory to load bean definitions into,
+	 * in the form of a BeanDefinitionRegistry
+	 */
+	public XmlBeanDefinitionReader(BeanDefinitionRegistry registry) {
+		super(registry);
+	}
+}
+```
+
+```java
+public abstract class AbstractBeanDefinitionReader implements BeanDefinitionReader, EnvironmentCapable {
+	private final BeanDefinitionRegistry registry;
+
+    @Nullable
+	private ResourceLoader resourceLoader;
+    
+	protected AbstractBeanDefinitionReader(BeanDefinitionRegistry registry) {
+		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
+		this.registry = registry;
+
+		// Determine ResourceLoader to use.
+		if (this.registry instanceof ResourceLoader) {
+			this.resourceLoader = (ResourceLoader) this.registry;
+		}
+		else {
+			this.resourceLoader = new PathMatchingResourcePatternResolver();
+		}
+
+		// Inherit Environment if possible
+		if (this.registry instanceof EnvironmentCapable) {
+			this.environment = ((EnvironmentCapable) this.registry).getEnvironment();
+		}
+		else {
+			this.environment = new StandardEnvironment();
+		}
+	}
+}
+```
+
+上面两个 `XmlBeanDefinitionReader` 的 `loadBeanDefinitions` 方法在其父类 `AbstractBeanDefinitionReader` 中如下：
 
 ```java
 public abstract class AbstractBeanDefinitionReader implements BeanDefinitionReader, EnvironmentCapable {
@@ -370,11 +464,14 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 }
 ```
 
-实际上这两个 `loadBeanDefinitions` 方法最后还是由子类 `XmlBeanDefinitionReader` 实现：
+这里稍微有点绕，但实际上这两个 `loadBeanDefinitions` 方法最后还是由子类 `XmlBeanDefinitionReader` 实现的：
 
 ```java
 public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
-	/**
+	private final ThreadLocal<Set<EncodedResource>> resourcesCurrentlyBeingLoaded =
+			new NamedThreadLocal<>("XML bean definition resources currently being loaded");
+    
+    /**
 	 * Load bean definitions from the specified XML file.
 	 * @param resource the resource descriptor for the XML file
 	 * @return the number of bean definitions found
@@ -433,7 +530,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		}
 	}
 
-    // 实际上读取 XML 文件的方法
+    // 实际读取 XML 文件的方法
 	protected int doLoadBeanDefinitions(InputSource inputSource, Resource resource)
 			throws BeanDefinitionStoreException {
 
@@ -479,8 +576,10 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see BeanDefinitionDocumentReader#registerBeanDefinitions
 	 */
 	public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
+        // 这里得到 BeanDefinitionDocumentReader 来对 XML 的 BeanDefinition 进行解析
 		BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
 		int countBefore = getRegistry().getBeanDefinitionCount();
+        // 具体解析过程在 registerBeanDefinitions 中完成
 		documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
 		return getRegistry().getBeanDefinitionCount() - countBefore;
 	}
@@ -637,6 +736,7 @@ public class BeanDefinitionParserDelegate {
 	 */
 	@Nullable
 	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+        // 这里取得在 <bean> 元素中定义的 id、name 和 alias 属性的值
 		String id = ele.getAttribute(ID_ATTRIBUTE);
 		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
 
@@ -658,7 +758,7 @@ public class BeanDefinitionParserDelegate {
 		if (containingBean == null) {
 			checkNameUniqueness(beanName, aliases, ele);
 		}
-
+        // 详细解析 Bean 元素
 		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
 		if (beanDefinition != null) {
 			if (!StringUtils.hasText(beanName)) {
@@ -705,7 +805,8 @@ public class BeanDefinitionParserDelegate {
 			Element ele, String beanName, @Nullable BeanDefinition containingBean) {
 
 		this.parseState.push(new BeanEntry(beanName));
-
+        // 这里只读取定义的 <bean> 中设置的 class 名字，然后载入到 BeanDefinition 中去
+        // 只是做个记录，并不涉及对象的实例化过程，对象的实例化过程实际是在依赖注入时完成的
 		String className = null;
 		if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
 			className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
@@ -716,11 +817,12 @@ public class BeanDefinitionParserDelegate {
 		}
 
 		try {
+            // 这里生成需要的 BeanDefinition 对象，为 Bean 定义信息的载入做准备
 			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
-            // 这里是解析 bean 的配置
+            // 对当前的 bean 元素进行属性解析，并设置 description
 			parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
 			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
-
+            // 对各种 <bean> 元素的信息进行解析
 			parseMetaElements(ele, bd);
 			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
 			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
@@ -890,6 +992,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		
 				BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
 				if (existingDefinition != null) {
+					// 若 IoC 容器中已存在同名的 BeanDefinition 且不允许覆盖，则抛异常
 					if (!isAllowBeanDefinitionOverriding()) {
 						throw new BeanDefinitionOverrideException(beanName, beanDefinition, existingDefinition);
 					}
