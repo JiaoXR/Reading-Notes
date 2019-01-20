@@ -15,7 +15,7 @@
 - 我们以编程方式跟踪 Spring IoC 容器的启动过程，示例代码如下：
 
 ```java
-ApplicationContext context = new ClassPathXmlApplicationContext("classpath:beans.xml");
+ApplicationContext context = new FileSystemXmlApplicationContext("classpath:beans.xml");
 context.getBean("employeeService", EmployeeService.class);
 ```
 
@@ -67,7 +67,7 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 
 其中 `refresh()` 方法是整个 IoC 容器启动（实际是重启）的核心方法。
 
-该方法内部调用比较复杂，为了有个整体认识，便于分析，先贴一个方法调用时序图（顺序从左到右）：
+该方法内部调用比较复杂，为了有个整体认识，便于分析，先贴一个主要方法调用时序图（顺序从左到右）：
 
 ![IoC-FileSystemXmlApplicationContext](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC-FileSystemXmlApplicationContext.png)
 
@@ -78,7 +78,11 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 ```java
 public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		implements ConfigurableApplicationContext {
-	
+
+	/** Parent context. */
+	@Nullable
+	private ApplicationContext parent;
+
 	/** ResourcePatternResolver used by this context. */
 	private ResourcePatternResolver resourcePatternResolver;
 
@@ -144,11 +148,11 @@ public abstract class AbstractRefreshableConfigApplicationContext extends Abstra
 }
 ```
 
-主要设置了配置文件的位置。
+该方法主要设置了配置文件的位置。
 
 ####  3. refresh()
 
-`refresh()` 实际是父类 `AbstractApplicationContext` 的方法，实现如下：
+`refresh()` 实际是父类 `AbstractApplicationContext` 的方法（该抽象类有多个子类），实现如下：
 
 ```java
 public abstract class AbstractApplicationContext extends DefaultResourceLoader
@@ -164,6 +168,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			prepareRefresh();
 
 			// 2. Tell the subclass to refresh the internal bean factory.
+			// 该方法是核心方法
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// 3. Prepare the bean factory for use in this context.
@@ -225,7 +230,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 }
 ```
 
-`prepareRefresh()` 方法主要做一些准备工作：记录开始时间，设置状态变量等，源码注释很详细，代码如下：
+`prepareRefresh()` 方法主要做一些准备工作：记录开始时间，设置状态变量等，源码注释很详细，如下：
 
 ```java
 public abstract class AbstractRefreshableConfigApplicationContext extends AbstractRefreshableApplicationContext
@@ -306,7 +311,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
         // 若 BeanFactory 已存在，则将其内部的 Bean 销毁，并关闭该 BeanFactory
-        // 因此，该 refresh 方法实际上是重启 IoC 容器
+        // 因此，refresh 方法实际上是重启 IoC 容器
 		if (hasBeanFactory()) {
 			destroyBeans();
 			closeBeanFactory();
@@ -388,7 +393,7 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 }
 ```
 
-这里创建了一个 `BeanDefinitionReader` 的实例对象 `XmlBeanDefinitionReader`，用于读取定义 bean 的文件。`XmlBeanDefinitionReader` 类继承结构与相关代码如下：
+这里创建了一个 `BeanDefinitionReader` 的实例对象 `XmlBeanDefinitionReader`，用于读取定义 bean 的 XML 文件。`XmlBeanDefinitionReader` 类继承结构与相关代码如下：
 
 ![XmlBeanDefinitionReader](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/XmlBeanDefinitionReader.png)
 
@@ -535,7 +540,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 			throws BeanDefinitionStoreException {
 
 		try {
-            // TODO
+            // 这里将输入流转为 DOM 文件
 			Document doc = doLoadDocument(inputSource, resource);
 			int count = registerBeanDefinitions(doc, resource);
 			if (logger.isDebugEnabled()) {
@@ -566,7 +571,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	/**
 	 * Register the bean definitions contained in the given DOM document.
 	 * Called by {@code loadBeanDefinitions}.
-	 * <p>Creates a new instance of the parser class and invokes
+	 * Creates a new instance of the parser class and invokes
 	 * {@code registerBeanDefinitions} on it.
 	 * @param doc the DOM document
 	 * @param resource the resource descriptor (for context information)
@@ -587,11 +592,150 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 }
 ```
 
-`registerBeanDefinitions` 由 `BeanDefinitionDocumentReader` 的实现类 `DefaultBeanDefinitionDocumentReader` 完成。具体实现有待进一步分析……
+`registerBeanDefinitions` 由 `BeanDefinitionDocumentReader` 的实现类 `DefaultBeanDefinitionDocumentReader` 完成：
 
+```java
+public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocumentReader {
+	public static final String BEAN_ELEMENT = BeanDefinitionParserDelegate.BEAN_ELEMENT;
+	public static final String NESTED_BEANS_ELEMENT = "beans";
+	public static final String IMPORT_ELEMENT = "import";
+	public static final String ALIAS_ELEMENT = "alias";
 
+	/**
+	 * This implementation parses bean definitions according to the "spring-beans" XSD
+	 * (or DTD, historically).
+	 * Opens a DOM Document; then initializes the default settings
+	 * specified at the <beans/> level; then parses the contained bean definitions.
+	 */
+	@Override
+	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
+		this.readerContext = readerContext;
+		doRegisterBeanDefinitions(doc.getDocumentElement());
+	}    
 
-上述方法解析后，得到一个 `BeanDefinitionHolder` 类，里面包含了解析得到的 `BeanDefinition`，然后通过 `BeanDefinitionReaderUtils.registerBeanDefinition` 注册该 `BeanDefinition`：
+    /**
+	 * Register each bean definition within the given root <beans/> element.
+	 * 这里注册的是 <beans/> 标签内包含的 bean 定义
+	 */
+	@SuppressWarnings("deprecation")  // for Environment.acceptsProfiles(String...)
+	protected void doRegisterBeanDefinitions(Element root) {
+		// Any nested <beans> elements will cause recursion in this method. In
+		// order to propagate and preserve <beans> default-* attributes correctly,
+		// keep track of the current (parent) delegate, which may be null. Create
+		// the new (child) delegate with a reference to the parent for fallback purposes,
+		// then ultimately reset this.delegate back to its original (parent) reference.
+		// this behavior emulates a stack of delegates without actually necessitating one.
+        // 创建 BeanDefinitionParserDelegate 对象，解析 DOM 文件
+        // 对于嵌套的 <beans> 标签会递归解析
+		BeanDefinitionParserDelegate parent = this.delegate;
+		this.delegate = createDelegate(getReaderContext(), root, parent);
+
+		if (this.delegate.isDefaultNamespace(root)) {
+			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
+			if (StringUtils.hasText(profileSpec)) {
+				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
+						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+				// We cannot use Profiles.of(...) since profile expressions are not supported
+				// in XML config. See SPR-12458 for details.
+				if (!getReaderContext().getEnvironment().acceptsProfiles(specifiedProfiles)) {
+					if (logger.isDebugEnabled()) {
+						logger.debug("Skipped XML bean definition file due to specified profiles [" + profileSpec +
+								"] not matching: " + getReaderContext().getResource());
+					}
+					return;
+				}
+			}
+		}
+
+		preProcessXml(root);
+		parseBeanDefinitions(root, this.delegate);
+		postProcessXml(root);
+
+		this.delegate = parent;
+	}
+
+    // 创建 BeanDefinitionParserDelegate 对象
+	protected BeanDefinitionParserDelegate createDelegate(
+			XmlReaderContext readerContext, Element root, @Nullable BeanDefinitionParserDelegate parentDelegate) {
+
+		BeanDefinitionParserDelegate delegate = new BeanDefinitionParserDelegate(readerContext);
+		delegate.initDefaults(root, parentDelegate);
+		return delegate;
+	}
+    
+	/**
+	 * Parse the elements at the root level in the document: "import", "alias", "bean".
+	 * @param root the DOM root element of the document
+	 */
+	protected void parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
+        // 若是Spring默认的名称空间（http://www.springframework.org/schema/beans），
+        // 则按照默认名称空间解析；否则按照用户自定义名称空间解析
+		if (delegate.isDefaultNamespace(root)) {
+			NodeList nl = root.getChildNodes();
+			for (int i = 0; i < nl.getLength(); i++) {
+				Node node = nl.item(i);
+				if (node instanceof Element) {
+					Element ele = (Element) node;
+                    // 遍历 XML 节点，若是 Spring 默认名称空间，则按照默认名称空间解析；
+                    // 否则按照自定义名称空间解析
+					if (delegate.isDefaultNamespace(ele)) {
+						parseDefaultElement(ele, delegate);
+					}
+					else {
+						delegate.parseCustomElement(ele);
+					}
+				}
+			}
+		}
+		else {
+			delegate.parseCustomElement(root);
+		}
+	}
+
+    // 判断 XML 文件是否包含 import、alias、bean 以及嵌套的 beans 标签，分别解析
+    // 若嵌套了 <beans> 标签，则递归调用 doRegisterBeanDefinitions 方法
+	private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
+		if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) { // import
+			importBeanDefinitionResource(ele);
+		}
+		else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) { // alias
+			processAliasRegistration(ele);
+		}
+		else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) { // bean
+			processBeanDefinition(ele, delegate);
+		}
+		else if (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) { // beans
+			// recurse, 这里递归调用 doRegisterBeanDefinitions 方法
+			doRegisterBeanDefinitions(ele);
+		}
+	}
+
+	/**
+	 * Process the given bean element, parsing the bean definition
+	 * and registering it with the registry.
+	 */
+	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+        // 这里由代理类 BeanDefinitionParserDelegate 执行解析，返回一个 BeanDefinitionHolder
+        // 其中包含解析后的 BeanDefinition，具体可参看其源码(见文末)
+		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+		if (bdHolder != null) {
+			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+			try {
+				// Register the final decorated instance.
+				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
+			}
+			catch (BeanDefinitionStoreException ex) {
+				getReaderContext().error("Failed to register bean definition with name '" +
+						bdHolder.getBeanName() + "'", ele, ex);
+			}
+			// Send registration event.
+			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
+		}
+	}
+}
+```
+
+上述方法解析后，得到一个 `BeanDefinitionHolder` 类，里面包含了解析得到的 `BeanDefinition`，然后通过 `BeanDefinitionReaderUtils.registerBeanDefinition` 将该 `BeanDefinition` 注册到 `BeanFactory`：
 
 ```java
 public abstract class BeanDefinitionReaderUtils {
@@ -708,10 +852,440 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 }
 ```
 
-可以看到这里将 BeanDefinition 注册到了一个 ConcurrentHashMap 中，其中 key 是 beanName，value 是 BeanDefinition。上述时序图如下：
+可以看到这里将 BeanDefinition 注册到了 `DefaultListableBeanFactory` 持有的一个 ConcurrentHashMap 中，其中 key 是 beanName，value 是 BeanDefinition。上述流程的时序图如下：
 
 ![](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC-Sequence-Diagram-2.png)
 
 到这里，Spring 已经大体完成了从 XML 中读取 bean 配置，并转为 BeanDefinition，注册到 BeanFactory。
 
 但是，此时并不包含依赖注入。即，Spring 此时尚未根据 XML 配置文件生成相应的 Bean 对象。
+
+
+
+PS: `BeanDefinitionParserDelegate` 类主要代码如下：
+
+```java
+public class BeanDefinitionParserDelegate {
+    // Spring 默认名称空间
+	public static final String BEANS_NAMESPACE_URI = "http://www.springframework.org/schema/beans";
+    
+	public static final String BEAN_ELEMENT = "bean";
+	public static final String DEFAULT_LAZY_INIT_ATTRIBUTE = "default-lazy-init";
+	public static final String DEFAULT_VALUE = "default";
+	public static final String FALSE_VALUE = "false";
+	public static final String DEFAULT_MERGE_ATTRIBUTE = "default-merge";
+	public static final String DEFAULT_AUTOWIRE_ATTRIBUTE = "default-autowire";
+	public static final String AUTOWIRE_NO_VALUE = "no";
+	public static final String DEFAULT_AUTOWIRE_CANDIDATES_ATTRIBUTE = "default-autowire-candidates";
+	public static final String DEFAULT_INIT_METHOD_ATTRIBUTE = "default-init-method";
+	public static final String DEFAULT_DESTROY_METHOD_ATTRIBUTE = "default-destroy-method";
+
+	public boolean isDefaultNamespace(@Nullable String namespaceUri) {
+		return (!StringUtils.hasLength(namespaceUri) || BEANS_NAMESPACE_URI.equals(namespaceUri));
+	}    
+    
+	/* ------------ 初始化 BeanDefinitionParserDelegate 实例 ------------ */
+    
+	/**
+	 * Initialize the default lazy-init, autowire, dependency check settings,
+	 * init-method, destroy-method and merge settings. Support nested 'beans'
+	 * element use cases by falling back to the given parent in case the
+	 * defaults are not explicitly set locally.
+	 * @see #populateDefaults(DocumentDefaultsDefinition, DocumentDefaultsDefinition, org.w3c.dom.Element)
+	 * @see #getDefaults()
+	 */
+	public void initDefaults(Element root, @Nullable BeanDefinitionParserDelegate parent) {
+		populateDefaults(this.defaults, (parent != null ? parent.defaults : null), root);
+		this.readerContext.fireDefaultsRegistered(this.defaults);
+	}
+	
+	/**
+	 * Populate the given DocumentDefaultsDefinition instance with the default lazy-init,
+	 * autowire, dependency check settings, init-method, destroy-method and merge settings.
+	 * Support nested 'beans' element use cases by falling back to {@code parentDefaults}
+	 * in case the defaults are not explicitly set locally.
+	 * @param defaults the defaults to populate
+	 * @param parentDefaults the parent BeanDefinitionParserDelegate (if any) defaults to fall back to
+	 * @param root the root element of the current bean definition document (or nested beans element)
+	 */
+	protected void populateDefaults(DocumentDefaultsDefinition defaults, @Nullable DocumentDefaultsDefinition parentDefaults, Element root) {
+		String lazyInit = root.getAttribute(DEFAULT_LAZY_INIT_ATTRIBUTE);
+		if (DEFAULT_VALUE.equals(lazyInit)) {
+			// Potentially inherited from outer <beans> sections, otherwise falling back to false.
+			lazyInit = (parentDefaults != null ? parentDefaults.getLazyInit() : FALSE_VALUE);
+		}
+		defaults.setLazyInit(lazyInit);
+
+		String merge = root.getAttribute(DEFAULT_MERGE_ATTRIBUTE);
+		if (DEFAULT_VALUE.equals(merge)) {
+			// Potentially inherited from outer <beans> sections, otherwise falling back to false.
+			merge = (parentDefaults != null ? parentDefaults.getMerge() : FALSE_VALUE);
+		}
+		defaults.setMerge(merge);
+
+		String autowire = root.getAttribute(DEFAULT_AUTOWIRE_ATTRIBUTE);
+		if (DEFAULT_VALUE.equals(autowire)) {
+			// Potentially inherited from outer <beans> sections, otherwise falling back to 'no'.
+			autowire = (parentDefaults != null ? parentDefaults.getAutowire() : AUTOWIRE_NO_VALUE);
+		}
+		defaults.setAutowire(autowire);
+
+		if (root.hasAttribute(DEFAULT_AUTOWIRE_CANDIDATES_ATTRIBUTE)) {
+			defaults.setAutowireCandidates(root.getAttribute(DEFAULT_AUTOWIRE_CANDIDATES_ATTRIBUTE));
+		}
+		else if (parentDefaults != null) {
+			defaults.setAutowireCandidates(parentDefaults.getAutowireCandidates());
+		}
+
+		if (root.hasAttribute(DEFAULT_INIT_METHOD_ATTRIBUTE)) {
+			defaults.setInitMethod(root.getAttribute(DEFAULT_INIT_METHOD_ATTRIBUTE));
+		}
+		else if (parentDefaults != null) {
+			defaults.setInitMethod(parentDefaults.getInitMethod());
+		}
+
+		if (root.hasAttribute(DEFAULT_DESTROY_METHOD_ATTRIBUTE)) {
+			defaults.setDestroyMethod(root.getAttribute(DEFAULT_DESTROY_METHOD_ATTRIBUTE));
+		}
+		else if (parentDefaults != null) {
+			defaults.setDestroyMethod(parentDefaults.getDestroyMethod());
+		}
+
+		defaults.setSource(this.readerContext.extractSource(root));
+	}
+
+	/* ------------ 解析 XML 文件 ------------ */
+
+	@Nullable
+	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele) {
+		return parseBeanDefinitionElement(ele, null);
+	}
+
+	/**
+	 * Parses the supplied {@code <bean>} element. May return {@code null}
+	 * if there were errors during parse. Errors are reported to the
+	 * {@link org.springframework.beans.factory.parsing.ProblemReporter}.
+	 */
+	@Nullable
+	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+        // 这里取得在 <bean> 元素中定义的 id、name 和 alias 属性的值
+		String id = ele.getAttribute(ID_ATTRIBUTE);
+		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
+
+		List<String> aliases = new ArrayList<>();
+		if (StringUtils.hasLength(nameAttr)) {
+			String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
+			aliases.addAll(Arrays.asList(nameArr));
+		}
+
+		String beanName = id;
+		if (!StringUtils.hasText(beanName) && !aliases.isEmpty()) {
+			beanName = aliases.remove(0);
+			if (logger.isTraceEnabled()) {
+				logger.trace("No XML 'id' specified - using '" + beanName +
+						"' as bean name and " + aliases + " as aliases");
+			}
+		}
+
+		if (containingBean == null) {
+			checkNameUniqueness(beanName, aliases, ele);
+		}
+
+        // 详细解析 Bean 元素
+		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
+		if (beanDefinition != null) {
+			if (!StringUtils.hasText(beanName)) {
+				try {
+					if (containingBean != null) {
+						beanName = BeanDefinitionReaderUtils.generateBeanName(
+								beanDefinition, this.readerContext.getRegistry(), true);
+					}
+					else {
+						beanName = this.readerContext.generateBeanName(beanDefinition);
+						// Register an alias for the plain bean class name, if still possible,
+						// if the generator returned the class name plus a suffix.
+						// This is expected for Spring 1.2/2.0 backwards compatibility.
+						String beanClassName = beanDefinition.getBeanClassName();
+						if (beanClassName != null &&
+								beanName.startsWith(beanClassName) && beanName.length() > beanClassName.length() &&
+								!this.readerContext.getRegistry().isBeanNameInUse(beanClassName)) {
+							aliases.add(beanClassName);
+						}
+					}
+					if (logger.isTraceEnabled()) {
+						logger.trace("Neither XML 'id' nor 'name' specified - " +
+								"using generated bean name [" + beanName + "]");
+					}
+				}
+				catch (Exception ex) {
+					error(ex.getMessage(), ele);
+					return null;
+				}
+			}
+			String[] aliasesArray = StringUtils.toStringArray(aliases);
+			return new BeanDefinitionHolder(beanDefinition, beanName, aliasesArray);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Parse the bean definition itself, without regard to name or aliases. May return
+	 * {@code null} if problems occurred during the parsing of the bean definition.
+	 */
+	@Nullable
+	public AbstractBeanDefinition parseBeanDefinitionElement(
+			Element ele, String beanName, @Nullable BeanDefinition containingBean) {
+
+		this.parseState.push(new BeanEntry(beanName));
+
+        // 这里只读取定义的 <bean> 中设置的 class 名字，然后载入到 BeanDefinition 中去
+        // 只是做个记录，并不涉及对象的实例化过程，对象的实例化过程实际是在依赖注入时完成的
+		String className = null;
+		if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
+			className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
+		}
+		String parent = null;
+		if (ele.hasAttribute(PARENT_ATTRIBUTE)) {
+			parent = ele.getAttribute(PARENT_ATTRIBUTE);
+		}
+
+		try {
+            // 这里生成需要的 BeanDefinition 对象，为 Bean 定义信息的载入做准备
+			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
+            // 对当前的 bean 元素进行属性解析，并设置 description
+			parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
+			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
+            // 对各种 <bean> 元素的信息进行解析
+			parseMetaElements(ele, bd);
+			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
+			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
+            // 构造器注入，setter 注入等
+			parseConstructorArgElements(ele, bd);
+			parsePropertyElements(ele, bd);
+			parseQualifierElements(ele, bd);
+
+			bd.setResource(this.readerContext.getResource());
+			bd.setSource(extractSource(ele));
+
+			return bd;
+		}
+		catch (ClassNotFoundException ex) {
+			error("Bean class [" + className + "] not found", ele, ex);
+		}
+		catch (NoClassDefFoundError err) {
+			error("Class that bean class [" + className + "] depends on not found", ele, err);
+		}
+		catch (Throwable ex) {
+			error("Unexpected failure during bean definition parsing", ele, ex);
+		}
+		finally {
+			this.parseState.pop();
+		}
+
+		return null;
+	}
+
+	/**
+	 * 解析 property
+	 * Parse property sub-elements of the given bean element.
+	 */
+	public void parsePropertyElements(Element beanEle, BeanDefinition bd) {
+		NodeList nl = beanEle.getChildNodes();
+		for (int i = 0; i < nl.getLength(); i++) {
+			Node node = nl.item(i);
+			if (isCandidateElement(node) && nodeNameEquals(node, PROPERTY_ELEMENT)) {
+				parsePropertyElement((Element) node, bd);
+			}
+		}
+	}
+    
+	/**
+	 * Parse a property element.
+	 */
+	public void parsePropertyElement(Element ele, BeanDefinition bd) {
+		String propertyName = ele.getAttribute(NAME_ATTRIBUTE);
+		if (!StringUtils.hasLength(propertyName)) {
+			error("Tag 'property' must have a 'name' attribute", ele);
+			return;
+		}
+		this.parseState.push(new PropertyEntry(propertyName));
+		try {
+			if (bd.getPropertyValues().contains(propertyName)) {
+				error("Multiple 'property' definitions for property '" + propertyName + "'", ele);
+				return;
+			}
+			Object val = parsePropertyValue(ele, bd, propertyName);
+			PropertyValue pv = new PropertyValue(propertyName, val);
+			parseMetaElements(ele, pv);
+			pv.setSource(extractSource(ele));
+			bd.getPropertyValues().addPropertyValue(pv);
+		}
+		finally {
+			this.parseState.pop();
+		}
+	}    
+    
+
+	/**
+	 * Get the value of a property element. May be a list etc.
+	 * Also used for constructor arguments, "propertyName" being null in this case.
+	 */
+	@Nullable
+	public Object parsePropertyValue(Element ele, BeanDefinition bd, @Nullable String propertyName) {
+		String elementName = (propertyName != null ?
+				"<property> element for property '" + propertyName + "'" :
+				"<constructor-arg> element");
+
+		// Should only have one child element: ref, value, list, etc.
+		NodeList nl = ele.getChildNodes();
+		Element subElement = null;
+		for (int i = 0; i < nl.getLength(); i++) {
+			Node node = nl.item(i);
+			if (node instanceof Element && !nodeNameEquals(node, DESCRIPTION_ELEMENT) &&
+					!nodeNameEquals(node, META_ELEMENT)) {
+				// Child element is what we're looking for.
+				if (subElement != null) {
+					error(elementName + " must not contain more than one sub-element", ele);
+				}
+				else {
+					subElement = (Element) node;
+				}
+			}
+		}
+
+		boolean hasRefAttribute = ele.hasAttribute(REF_ATTRIBUTE);
+		boolean hasValueAttribute = ele.hasAttribute(VALUE_ATTRIBUTE);
+		if ((hasRefAttribute && hasValueAttribute) ||
+				((hasRefAttribute || hasValueAttribute) && subElement != null)) {
+			error(elementName +
+					" is only allowed to contain either 'ref' attribute OR 'value' attribute OR sub-element", ele);
+		}
+
+		if (hasRefAttribute) {
+			String refName = ele.getAttribute(REF_ATTRIBUTE);
+			if (!StringUtils.hasText(refName)) {
+				error(elementName + " contains empty 'ref' attribute", ele);
+			}
+			RuntimeBeanReference ref = new RuntimeBeanReference(refName);
+			ref.setSource(extractSource(ele));
+			return ref;
+		}
+		else if (hasValueAttribute) {
+			TypedStringValue valueHolder = new TypedStringValue(ele.getAttribute(VALUE_ATTRIBUTE));
+			valueHolder.setSource(extractSource(ele));
+			return valueHolder;
+		}
+		else if (subElement != null) {
+			return parsePropertySubElement(subElement, bd);
+		}
+		else {
+			// Neither child element nor "ref" or "value" attribute found.
+			error(elementName + " must specify a ref or value", ele);
+			return null;
+		}
+	}
+
+	/**
+	 * Parse a value, ref or collection sub-element of a property or
+	 * constructor-arg element.
+	 * @param ele subelement of property element; we don't know which yet
+	 * @param defaultValueType the default type (class name) for any
+	 * {@code <value>} tag that might be created
+	 */
+	@Nullable
+	public Object parsePropertySubElement(Element ele, @Nullable BeanDefinition bd, @Nullable String defaultValueType) {
+		if (!isDefaultNamespace(ele)) {
+			return parseNestedCustomElement(ele, bd);
+		}
+		else if (nodeNameEquals(ele, BEAN_ELEMENT)) {
+			BeanDefinitionHolder nestedBd = parseBeanDefinitionElement(ele, bd);
+			if (nestedBd != null) {
+				nestedBd = decorateBeanDefinitionIfRequired(ele, nestedBd, bd);
+			}
+			return nestedBd;
+		}
+		else if (nodeNameEquals(ele, REF_ELEMENT)) {
+			// A generic reference to any name of any bean.
+			String refName = ele.getAttribute(BEAN_REF_ATTRIBUTE);
+			boolean toParent = false;
+			if (!StringUtils.hasLength(refName)) {
+				// A reference to the id of another bean in a parent context.
+				refName = ele.getAttribute(PARENT_REF_ATTRIBUTE);
+				toParent = true;
+				if (!StringUtils.hasLength(refName)) {
+					error("'bean' or 'parent' is required for <ref> element", ele);
+					return null;
+				}
+			}
+			if (!StringUtils.hasText(refName)) {
+				error("<ref> element contains empty target attribute", ele);
+				return null;
+			}
+			RuntimeBeanReference ref = new RuntimeBeanReference(refName, toParent);
+			ref.setSource(extractSource(ele));
+			return ref;
+		}
+		else if (nodeNameEquals(ele, IDREF_ELEMENT)) {
+			return parseIdRefElement(ele);
+		}
+		else if (nodeNameEquals(ele, VALUE_ELEMENT)) {
+			return parseValueElement(ele, defaultValueType);
+		}
+		else if (nodeNameEquals(ele, NULL_ELEMENT)) {
+			// It's a distinguished null value. Let's wrap it in a TypedStringValue
+			// object in order to preserve the source location.
+			TypedStringValue nullHolder = new TypedStringValue(null);
+			nullHolder.setSource(extractSource(ele));
+			return nullHolder;
+		}
+		else if (nodeNameEquals(ele, ARRAY_ELEMENT)) {
+			return parseArrayElement(ele, bd);
+		}
+		else if (nodeNameEquals(ele, LIST_ELEMENT)) {
+			return parseListElement(ele, bd);
+		}
+		else if (nodeNameEquals(ele, SET_ELEMENT)) {
+			return parseSetElement(ele, bd);
+		}
+		else if (nodeNameEquals(ele, MAP_ELEMENT)) {
+			return parseMapElement(ele, bd);
+		}
+		else if (nodeNameEquals(ele, PROPS_ELEMENT)) {
+			return parsePropsElement(ele);
+		}
+		else {
+			error("Unknown property sub-element: [" + ele.getNodeName() + "]", ele);
+			return null;
+		}
+	}    
+
+	/**
+	 * Parse a list element.
+	 */
+	public List<Object> parseListElement(Element collectionEle, @Nullable BeanDefinition bd) {
+		String defaultElementType = collectionEle.getAttribute(VALUE_TYPE_ATTRIBUTE);
+		NodeList nl = collectionEle.getChildNodes();
+		ManagedList<Object> target = new ManagedList<>(nl.getLength());
+		target.setSource(extractSource(collectionEle));
+		target.setElementTypeName(defaultElementType);
+		target.setMergeEnabled(parseMergeAttribute(collectionEle));
+		parseCollectionElements(nl, target, bd, defaultElementType);
+		return target;
+	}    
+    
+	protected void parseCollectionElements(
+			NodeList elementNodes, Collection<Object> target, @Nullable BeanDefinition bd, String defaultElementType) {
+
+		for (int i = 0; i < elementNodes.getLength(); i++) {
+			Node node = elementNodes.item(i);
+			if (node instanceof Element && !nodeNameEquals(node, DESCRIPTION_ELEMENT)) {
+                // 若还有子元素，递归调用继续解析
+				target.add(parsePropertySubElement((Element) node, bd, defaultElementType));
+			}
+		}
+	}    
+
+}
+```
+
