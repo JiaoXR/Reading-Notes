@@ -715,4 +715,3 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 到这里，Spring 已经大体完成了从 XML 中读取 bean 配置，并转为 BeanDefinition，注册到 BeanFactory。
 
 但是，此时并不包含依赖注入。即，Spring 此时尚未根据 XML 配置文件生成相应的 Bean 对象。
-
