@@ -41,8 +41,8 @@ context.getBean("employeeService", EmployeeService.class);
 ```java
 public class FileSystemXmlApplicationContext extends AbstractXmlApplicationContext {
     // 其他构造器
-	
-	/**
+
+    /**
 	 * Create a new FileSystemXmlApplicationContext with the given parent,
 	 * loading the definitions from the given XML files.
 	 * @param configLocations array of file paths
@@ -677,7 +677,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 				if (node instanceof Element) {
 					Element ele = (Element) node;
                     // 遍历 XML 节点，若是 Spring 默认名称空间，则按照默认名称空间解析；
-                    // 否则按照自定义名称空间解析
+                    // 否则按照自定义名称空间解析(深入优先)
 					if (delegate.isDefaultNamespace(ele)) {
 						parseDefaultElement(ele, delegate);
 					}
@@ -909,6 +909,7 @@ public class BeanDefinitionParserDelegate {
 	 * @param root the root element of the current bean definition document (or nested beans element)
 	 */
 	protected void populateDefaults(DocumentDefaultsDefinition defaults, @Nullable DocumentDefaultsDefinition parentDefaults, Element root) {
+        // default-lazy-init
 		String lazyInit = root.getAttribute(DEFAULT_LAZY_INIT_ATTRIBUTE);
 		if (DEFAULT_VALUE.equals(lazyInit)) {
 			// Potentially inherited from outer <beans> sections, otherwise falling back to false.
@@ -916,6 +917,7 @@ public class BeanDefinitionParserDelegate {
 		}
 		defaults.setLazyInit(lazyInit);
 
+        // default-merge
 		String merge = root.getAttribute(DEFAULT_MERGE_ATTRIBUTE);
 		if (DEFAULT_VALUE.equals(merge)) {
 			// Potentially inherited from outer <beans> sections, otherwise falling back to false.
@@ -923,6 +925,7 @@ public class BeanDefinitionParserDelegate {
 		}
 		defaults.setMerge(merge);
 
+        // default-autowire
 		String autowire = root.getAttribute(DEFAULT_AUTOWIRE_ATTRIBUTE);
 		if (DEFAULT_VALUE.equals(autowire)) {
 			// Potentially inherited from outer <beans> sections, otherwise falling back to 'no'.
@@ -930,6 +933,7 @@ public class BeanDefinitionParserDelegate {
 		}
 		defaults.setAutowire(autowire);
 
+        // default-autowire-candidates
 		if (root.hasAttribute(DEFAULT_AUTOWIRE_CANDIDATES_ATTRIBUTE)) {
 			defaults.setAutowireCandidates(root.getAttribute(DEFAULT_AUTOWIRE_CANDIDATES_ATTRIBUTE));
 		}
@@ -937,6 +941,7 @@ public class BeanDefinitionParserDelegate {
 			defaults.setAutowireCandidates(parentDefaults.getAutowireCandidates());
 		}
 
+        // default-init-method
 		if (root.hasAttribute(DEFAULT_INIT_METHOD_ATTRIBUTE)) {
 			defaults.setInitMethod(root.getAttribute(DEFAULT_INIT_METHOD_ATTRIBUTE));
 		}
@@ -944,6 +949,7 @@ public class BeanDefinitionParserDelegate {
 			defaults.setInitMethod(parentDefaults.getInitMethod());
 		}
 
+        // default-destroy-method
 		if (root.hasAttribute(DEFAULT_DESTROY_METHOD_ATTRIBUTE)) {
 			defaults.setDestroyMethod(root.getAttribute(DEFAULT_DESTROY_METHOD_ATTRIBUTE));
 		}
