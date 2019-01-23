@@ -8,15 +8,15 @@
 
 - IoC 容器系列的实现：BeanFactory 和 ApplicationContext，可以认为 BeanFactory 是实现 IoC 容器的基本形式，而各种 ApplicationContext 的实现是 IoC 容器的高级表现形式（水桶的比喻）。接口设计如图：
 
-![IoC](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/IoC.png)
+![ApplicationContext](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/ApplicationContext.png)
 
 BeanFactory 接口结构如下：
 
 ![BeanFactory](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/BeanFactory.png)
 
-ApplicationContext 接口结构如下：
+ApplicationContext 接口的常用实现类继承结构如下：
 
-![ApplicationContext](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/ApplicationContext.png)
+![ApplicationContext-2](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/ApplicationContext-2.png)
 
 
 
@@ -30,10 +30,26 @@ ApplicationContext 接口结构如下：
 - 由 ResourceLoader 通过 Resource 接口完成；
 - 相关类和接口：ResourceLoader、Resource (FileSystemResource, ClassPathResource 等)
 
+- Resource 接口继承结构
+
+![Resource](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/Resource.png)
+
+- ResourceLoader 接口继承结构
+
+![ResourceLoader](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/ResourceLoader.png)
+
 ###  2. BeanDefinition 的载入
 
 - 把用户在文件中定义好的 Bean 转为 Spring IoC 内部的数据结构（BeanDefinition）
 - 相关类和接口：BeanDefinition
+
+- BeanDefinition 接口继承结构
+
+![BeanDefinition](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/BeanDefinition-2.png)
+
+- BeanDefinitionReader 接口继承结构
+
+![BeanDefinitionReader](https://github.com/JiaoXR/Reading-Notes/blob/master/pics/Spring/BeanDefinitionReader.png)
 
 ###  3. BeanDefinition 的注册
 
