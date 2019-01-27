@@ -83,7 +83,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
                     logger.trace("Returning cached instance of singleton bean '" + beanName + "'");
                 }
             }
-            // ??
+            // 处理 FactoryBean
             bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
         }
 
@@ -124,7 +124,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
             }
 
             try {
-                // 根据 beanName 取得 BeanDefinition
+                // 根据 beanName 取得 RootBeanDefinition (合并后的 BeanDefinition)
                 final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
                 checkMergedBeanDefinition(mbd, beanName, args);
 
