@@ -235,6 +235,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 }
 ```
 
-这里的代码较长而且复杂，因此拆分为几个部分。
+上述整体逻辑主要分为三部分：
+
+1. 从缓存中获取对象；
+2. 处理取出的对象
+    1. 若已存在：第三步；
+    2. 若不存在
+        1. 从 BeanFactory 或 parentBeanFactory 中查找 BeanDefinition；
+        2. 处理 Bean 依赖关系；
+        3. 根据 scope 创建相应对象；
+3. 检查类型并返回所需对象。
 
 
+
+此处代码较长且稍微复杂，因此接下来拆分详述。
