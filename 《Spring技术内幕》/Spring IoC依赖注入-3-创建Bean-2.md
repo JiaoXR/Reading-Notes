@@ -10,58 +10,58 @@
 // 创建单例 Bean
 // Create bean instance.
 if (mbd.isSingleton()) {
-	sharedInstance = getSingleton(beanName, () -> {
-		try {
-			return createBean(beanName, mbd, args);
-		}
-		catch (BeansException ex) {
-			// Explicitly remove instance from singleton cache: It might have been put there
-			// eagerly by the creation process, to allow for circular reference resolution.
-			// Also remove any beans that received a temporary reference to the bean.
-			destroySingleton(beanName);
-			throw ex;
-		}
-	});
-	bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
+    sharedInstance = getSingleton(beanName, () -> {
+        try {
+            return createBean(beanName, mbd, args);
+        }
+        catch (BeansException ex) {
+            // Explicitly remove instance from singleton cache: It might have been put there
+            // eagerly by the creation process, to allow for circular reference resolution.
+            // Also remove any beans that received a temporary reference to the bean.
+            destroySingleton(beanName);
+            throw ex;
+        }
+    });
+    bean = getObjectForBeanInstance(sharedInstance, name, beanName, mbd);
 }
 // 创建 prototype Bean
 else if (mbd.isPrototype()) {
-	// It's a prototype -> create a new instance.
-	Object prototypeInstance = null;
-	try {
-		beforePrototypeCreation(beanName);
-		prototypeInstance = createBean(beanName, mbd, args);
-	}
-	finally {
-		afterPrototypeCreation(beanName);
-	}
-	bean = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
+    // It's a prototype -> create a new instance.
+    Object prototypeInstance = null;
+    try {
+        beforePrototypeCreation(beanName);
+        prototypeInstance = createBean(beanName, mbd, args);
+    }
+    finally {
+        afterPrototypeCreation(beanName);
+    }
+    bean = getObjectForBeanInstance(prototypeInstance, name, beanName, mbd);
 }
 // 根据 scope 创建 Bean
 else {
-	String scopeName = mbd.getScope();
-	final Scope scope = this.scopes.get(scopeName);
-	if (scope == null) {
-		throw new IllegalStateException("No Scope registered for scope name '" + scopeName + "'");
-	}
-	try {
-		Object scopedInstance = scope.get(beanName, () -> {
-			beforePrototypeCreation(beanName);
-			try {
-				return createBean(beanName, mbd, args);
-			}
-			finally {
-				afterPrototypeCreation(beanName);
-			}
-		});
-		bean = getObjectForBeanInstance(scopedInstance, name, beanName, mbd);
-	}
-	catch (IllegalStateException ex) {
-		throw new BeanCreationException(beanName,
-				"Scope '" + scopeName + "' is not active for the current thread; consider " +
-				"defining a scoped proxy for this bean if you intend to refer to it from a singleton",
-				ex);
-	}
+    String scopeName = mbd.getScope();
+    final Scope scope = this.scopes.get(scopeName);
+    if (scope == null) {
+        throw new IllegalStateException("No Scope registered for scope name '" + scopeName + "'");
+    }
+    try {
+        Object scopedInstance = scope.get(beanName, () -> {
+            beforePrototypeCreation(beanName);
+            try {
+                return createBean(beanName, mbd, args);
+            }
+            finally {
+                afterPrototypeCreation(beanName);
+            }
+        });
+        bean = getObjectForBeanInstance(scopedInstance, name, beanName, mbd);
+    }
+    catch (IllegalStateException ex) {
+        throw new BeanCreationException(beanName,
+                "Scope '" + scopeName + "' is not active for the current thread; consider " +
+                "defining a scoped proxy for this bean if you intend to refer to it from a singleton",
+                ex);
+    }
 }
 ```
 
@@ -80,77 +80,77 @@ else {
 ```java
 public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry {
 
-	/** Cache of singleton objects: bean name to bean instance. */
-	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+    /** Cache of singleton objects: bean name to bean instance. */
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
-	/** Flag that indicates whether we're currently within destroySingletons. */
-	private boolean singletonsCurrentlyInDestruction = false;
+    /** Flag that indicates whether we're currently within destroySingletons. */
+    private boolean singletonsCurrentlyInDestruction = false;
 
-	/**
-	 * Return the (raw) singleton object registered under the given name,
-	 * creating and registering a new one if none registered yet.
-	 * @param beanName the name of the bean
-	 * @param singletonFactory the ObjectFactory to lazily create the singleton
-	 * with, if necessary
-	 * @return the registered singleton object
-	 */
-	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
-		Assert.notNull(beanName, "Bean name must not be null");
-		synchronized (this.singletonObjects) {
-			Object singletonObject = this.singletonObjects.get(beanName);
-			if (singletonObject == null) {
-				if (this.singletonsCurrentlyInDestruction) {
-					throw new BeanCreationNotAllowedException(beanName,
-							"Singleton bean creation not allowed while singletons of this factory are in destruction " +
-							"(Do not request a bean from a BeanFactory in a destroy method implementation!)");
-				}
-				if (logger.isDebugEnabled()) {
-					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
-				}
+    /**
+     * Return the (raw) singleton object registered under the given name,
+     * creating and registering a new one if none registered yet.
+     * @param beanName the name of the bean
+     * @param singletonFactory the ObjectFactory to lazily create the singleton
+     * with, if necessary
+     * @return the registered singleton object
+     */
+    public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
+        Assert.notNull(beanName, "Bean name must not be null");
+        synchronized (this.singletonObjects) {
+            Object singletonObject = this.singletonObjects.get(beanName);
+            if (singletonObject == null) {
+                if (this.singletonsCurrentlyInDestruction) {
+                    throw new BeanCreationNotAllowedException(beanName,
+                            "Singleton bean creation not allowed while singletons of this factory are in destruction " +
+                            "(Do not request a bean from a BeanFactory in a destroy method implementation!)");
+                }
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
+                }
                 // 创建对象之前
-				beforeSingletonCreation(beanName);
-				boolean newSingleton = false;
-				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
-				if (recordSuppressedExceptions) {
-					this.suppressedExceptions = new LinkedHashSet<>();
-				}
-				try {
+                beforeSingletonCreation(beanName);
+                boolean newSingleton = false;
+                boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
+                if (recordSuppressedExceptions) {
+                    this.suppressedExceptions = new LinkedHashSet<>();
+                }
+                try {
                     // 创建 Bean 对象的方法
                     // 这里调用的是 AbstractAutowireCapableBeanFactory 的 createBean 方法
-					singletonObject = singletonFactory.getObject();
-					newSingleton = true;
-				}
-				catch (IllegalStateException ex) {
-					// Has the singleton object implicitly appeared in the meantime ->
-					// if yes, proceed with it since the exception indicates that state.
-					singletonObject = this.singletonObjects.get(beanName);
-					if (singletonObject == null) {
-						throw ex;
-					}
-				}
-				catch (BeanCreationException ex) {
-					if (recordSuppressedExceptions) {
-						for (Exception suppressedException : this.suppressedExceptions) {
-							ex.addRelatedCause(suppressedException);
-						}
-					}
-					throw ex;
-				}
-				finally {
-					if (recordSuppressedExceptions) {
-						this.suppressedExceptions = null;
-					}
+                    singletonObject = singletonFactory.getObject();
+                    newSingleton = true;
+                }
+                catch (IllegalStateException ex) {
+                    // Has the singleton object implicitly appeared in the meantime ->
+                    // if yes, proceed with it since the exception indicates that state.
+                    singletonObject = this.singletonObjects.get(beanName);
+                    if (singletonObject == null) {
+                        throw ex;
+                    }
+                }
+                catch (BeanCreationException ex) {
+                    if (recordSuppressedExceptions) {
+                        for (Exception suppressedException : this.suppressedExceptions) {
+                            ex.addRelatedCause(suppressedException);
+                        }
+                    }
+                    throw ex;
+                }
+                finally {
+                    if (recordSuppressedExceptions) {
+                        this.suppressedExceptions = null;
+                    }
                     // 创建对象之后
-					afterSingletonCreation(beanName);
-				}
+                    afterSingletonCreation(beanName);
+                }
                 // 若创建成功，则添加到缓存中
-				if (newSingleton) {
-					addSingleton(beanName, singletonObject);
-				}
-			}
-			return singletonObject;
-		}
-	}
+                if (newSingleton) {
+                    addSingleton(beanName, singletonObject);
+                }
+            }
+            return singletonObject;
+        }
+    }
 }
 ```
 
@@ -159,18 +159,18 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 ```java
 /** Names of beans that are currently in creation. */
 private final Set<String> singletonsCurrentlyInCreation =
-		Collections.newSetFromMap(new ConcurrentHashMap<>(16));
+        Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
 /** Names of beans currently excluded from in creation checks. */
 private final Set<String> inCreationCheckExclusions =
-		Collections.newSetFromMap(new ConcurrentHashMap<>(16));
+        Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
 /**
  * Return whether the specified singleton bean is currently in creation
  * (within the entire factory).
  */
 public boolean isSingletonCurrentlyInCreation(String beanName) {
-	return this.singletonsCurrentlyInCreation.contains(beanName);
+    return this.singletonsCurrentlyInCreation.contains(beanName);
 }
 
 /**
@@ -178,9 +178,9 @@ public boolean isSingletonCurrentlyInCreation(String beanName) {
  * The default implementation register the singleton as currently in creation.
  */
 protected void beforeSingletonCreation(String beanName) {
-	if (!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.add(beanName)) {
-		throw new BeanCurrentlyInCreationException(beanName);
-	}
+    if (!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.add(beanName)) {
+        throw new BeanCurrentlyInCreationException(beanName);
+    }
 }
 
 /**
@@ -188,9 +188,9 @@ protected void beforeSingletonCreation(String beanName) {
  * The default implementation marks the singleton as not in creation anymore.
  */
 protected void afterSingletonCreation(String beanName) {
-	if (!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.remove(beanName)) {
-		throw new IllegalStateException("Singleton '" + beanName + "' isn't currently in creation");
-	}
+    if (!this.inCreationCheckExclusions.contains(beanName) && !this.singletonsCurrentlyInCreation.remove(beanName)) {
+        throw new IllegalStateException("Singleton '" + beanName + "' isn't currently in creation");
+    }
 }
 ```
 
@@ -200,11 +200,11 @@ protected void afterSingletonCreation(String beanName) {
 @FunctionalInterface
 public interface ObjectFactory<T> {
 
-	/**
-	 * Return an instance (possibly shared or independent)
-	 * of the object managed by this factory.
-	 */
-	T getObject() throws BeansException;
+    /**
+     * Return an instance (possibly shared or independent)
+     * of the object managed by this factory.
+     */
+    T getObject() throws BeansException;
 }
 ```
 
@@ -212,75 +212,75 @@ public interface ObjectFactory<T> {
 
 ```java
 public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory
-		implements AutowireCapableBeanFactory {
+        implements AutowireCapableBeanFactory {
 
-	/**
-	 * Central method of this class: creates a bean instance,
-	 * populates the bean instance, applies post-processors, etc.
-	 * @see #doCreateBean
-	 */
-	@Override
-	protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
-			throws BeanCreationException {
+    /**
+     * Central method of this class: creates a bean instance,
+     * populates the bean instance, applies post-processors, etc.
+     * @see #doCreateBean
+     */
+    @Override
+    protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+            throws BeanCreationException {
 
-		if (logger.isTraceEnabled()) {
-			logger.trace("Creating instance of bean '" + beanName + "'");
-		}
-		RootBeanDefinition mbdToUse = mbd;
+        if (logger.isTraceEnabled()) {
+            logger.trace("Creating instance of bean '" + beanName + "'");
+        }
+        RootBeanDefinition mbdToUse = mbd;
 
-		// 确保此时实际解析了 bean 类，并在动态解析的 Class 的情况下克隆 bean 定义，
-		// 该类无法存储在共享的合并 bean 定义中。
-		// Make sure bean class is actually resolved at this point, and
-		// clone the bean definition in case of a dynamically resolved Class
-		// which cannot be stored in the shared merged bean definition.
-		Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
-		if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
-			mbdToUse = new RootBeanDefinition(mbd);
-			mbdToUse.setBeanClass(resolvedClass);
-		}
+        // 确保此时实际解析了 bean 类，并在动态解析的 Class 的情况下克隆 bean 定义，
+        // 该类无法存储在共享的合并 bean 定义中。
+        // Make sure bean class is actually resolved at this point, and
+        // clone the bean definition in case of a dynamically resolved Class
+        // which cannot be stored in the shared merged bean definition.
+        Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
+        if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+            mbdToUse = new RootBeanDefinition(mbd);
+            mbdToUse.setBeanClass(resolvedClass);
+        }
 
-		// Prepare method overrides.
-		try {
-			mbdToUse.prepareMethodOverrides();
-		}
-		catch (BeanDefinitionValidationException ex) {
-			throw new BeanDefinitionStoreException(mbdToUse.getResourceDescription(),
-					beanName, "Validation of method overrides failed", ex);
-		}
+        // Prepare method overrides.
+        try {
+            mbdToUse.prepareMethodOverrides();
+        }
+        catch (BeanDefinitionValidationException ex) {
+            throw new BeanDefinitionStoreException(mbdToUse.getResourceDescription(),
+                    beanName, "Validation of method overrides failed", ex);
+        }
 
-		try {
-			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
-			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
-			if (bean != null) {
-				return bean;
-			}
-		}
-		catch (Throwable ex) {
-			throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName,
-					"BeanPostProcessor before instantiation of bean failed", ex);
-		}
+        try {
+            // Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
+            Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+            if (bean != null) {
+                return bean;
+            }
+        }
+        catch (Throwable ex) {
+            throw new BeanCreationException(mbdToUse.getResourceDescription(), beanName,
+                    "BeanPostProcessor before instantiation of bean failed", ex);
+        }
 
-		try {
-			// 实际创建 Bean 对象的地方
-			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
-			if (logger.isTraceEnabled()) {
-				logger.trace("Finished creating instance of bean '" + beanName + "'");
-			}
-			return beanInstance;
-		}
-		catch (BeanCreationException | ImplicitlyAppearedSingletonException ex) {
-			// A previously detected exception with proper bean creation context already,
-			// or illegal singleton state to be communicated up to DefaultSingletonBeanRegistry.
-			throw ex;
-		}
-		catch (Throwable ex) {
-			throw new BeanCreationException(
-					mbdToUse.getResourceDescription(), beanName, "Unexpected exception during bean creation", ex);
-		}
-	}
+        try {
+            // 实际创建 Bean 对象的地方
+            Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Finished creating instance of bean '" + beanName + "'");
+            }
+            return beanInstance;
+        }
+        catch (BeanCreationException | ImplicitlyAppearedSingletonException ex) {
+            // A previously detected exception with proper bean creation context already,
+            // or illegal singleton state to be communicated up to DefaultSingletonBeanRegistry.
+            throw ex;
+        }
+        catch (Throwable ex) {
+            throw new BeanCreationException(
+                    mbdToUse.getResourceDescription(), beanName, "Unexpected exception during bean creation", ex);
+        }
+    }
 
 }
 ```
 
-然而，这里还不是最终创建 Bean 对象的地方，最终的地方在 *doCreateBean* 方法中，下文再进行分析。
+然而，这里还不是最终创建 Bean 对象的地方，最终创建的地方在 *doCreateBean* 方法中，下文再进行分析。
 
