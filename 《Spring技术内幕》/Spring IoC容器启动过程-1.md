@@ -103,6 +103,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
     /** Parent context. */
     @Nullable
     private ApplicationContext parent;
+    
+    /** Environment used by this context. */
+    @Nullable
+    private ConfigurableEnvironment environment;
 
     /** ResourcePatternResolver used by this context. */
     private ResourcePatternResolver resourcePatternResolver;
