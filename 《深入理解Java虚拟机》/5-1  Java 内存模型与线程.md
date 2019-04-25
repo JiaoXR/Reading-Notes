@@ -1,7 +1,5 @@
 #  5-1  Java 内存模型与线程
 
-
-
 衡量一个服务性能的高低好坏，每秒事务处理数（Transactions Per Second, TPS）是最重要的指标之一，它代表着一秒内服务端平均能响应的请求总数，而 TPS 的值与程序的并发能力又有非常密切的关系。
 
 
@@ -9,8 +7,6 @@
 处理器、高速缓存（Cache）和主内存之间的交互关系如图 12-1 所示：
 
 ![12-1](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/JVM/cache_coherence.png)
-
-
 
 缓存一致性（Cache Conherence）
 
@@ -76,15 +72,27 @@ JMM 规定了在执行上述 8 种基本操作时必须满足以下规则：
 
 1. 可见性。保证 volatile 变量的可见性（即，当一条线程修改了该变量的值，新值对于其他线程来说是可以立即得知的。普通变量不能做到这一点，普通变量的值在线程间传递均需要通过主内存来完成）
 
+    适用场景举例：
+
+    ```java
+    public class VolatileTest {
+        volatile boolean shutdownRequested;
+    
+        public void shutdown() {
+            shutdownRequested = true;
+        }
+    
+        public void doWork() {
+            while (!shutdownRequested) {
+                // do stuff
+            }
+        }
+    }
+    ```
+
 2. 禁止指令重排序优化。普通变量仅会保证在该方法的执行过程中所有依赖赋值结果的地方都能获取到正确的结果，而不能保证变量赋值操作的顺序与程序代码中的执行顺序一致。即 JMM 描述的“线程内表现为串行的语义（Within-Thread-AS-If-Serial Semantics）”。
 
-> volatile 变量对应的操作相当于一个内存屏障（Memory Barrier 或 Memory Fence，指令重排序时不能把后面的指令重排序到内存屏障之前的位置），只有一个 CPU 访问内存时，无需内存屏障；若有多个 CPU 访问同一块内存，且其中一个在观测另一个，则需内存屏障来保证一致性。
->
-> 
->
-> PS : 实际是在汇编指令中多了一个 lock 操作，使得本 CPU 的 Cache 写入了内存，并引起其他 CPU 或内核无效化（Invalidate）其 Cache。因此可以让 volatile 变量的修改对其他 CPU 立即可见。
-
-示例代码：
+    示例代码：
 
 ```java
 Map configOptions;
@@ -108,6 +116,12 @@ while (!initialized) {
 doSomethingWithConfig();
 ```
 
+> volatile 变量对应的操作相当于一个内存屏障（Memory Barrier 或 Memory Fence，指令重排序时不能把后面的指令重排序到内存屏障之前的位置），只有一个 CPU 访问内存时，无需内存屏障；若有多个 CPU 访问同一块内存，且其中一个在观测另一个，则需内存屏障来保证一致性。
+>
+> 
+>
+> PS : 实际是在汇编指令中多了一个 lock 操作，使得本 CPU 的 Cache 写入了内存，并引起其他 CPU 或内核无效化（Invalidate）其 Cache。因此可以让 volatile 变量的修改对其他 CPU 立即可见。
+>
 > volatile 变量在各个线程的工作内存中不存在一致性问题（在各个线程的工作内存中，volatile 变量也可以不存在一致性的情况，但由于每次使用之前都要进行刷新，执行引擎看不到不一致的情况，因此可以认为不存在一致性的问题），但 Java 里的运算并非原子操作，导致 volatile 变量的运算在并发下一样不安全。
 
 ####  小结
@@ -177,11 +191,7 @@ synchronized：一个变量在同一时刻只允许一条线程对其进行 lock
 
 “先行发生”是 JMM 中定义的两项操作之间的偏序关系，若操作 A “先行发生”于操作 B，意味着操作 B 发生之前，操作 A 产生的影响能被操作 B 观察到。“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。
 
-> 注意：时间先后顺序与先行发生原则之间没有必然联系。
-
-
-
-JMM 中的一些先行发生关系：
+#### JMM 中的一些先行发生关系
 
 - 程序次序规则（Program Order Rule）
 
@@ -215,7 +225,32 @@ JMM 中的一些先行发生关系：
 
   若操作 A 先行发生于操作 B，操作 B 先行发生于操作 C，则操作 A 先行发生于操作 C。
 
+#### 先行发生原则举例
 
+代码如下：
+
+```java
+private int value = 0;
+
+public void setValue(int value) {
+    this.value = value;
+}
+
+public int getValue() {
+    return value;
+}
+```
+
+假设存在线程 A 和 B，线程 A 先（时间上的先后）调用了 "setValue(1)"，然后线程 B 调用了同一个对象的 "getValue()"，那么线程 B 的返回值是什么呢？
+
+答案是"不确定"。因为无法从上述"先行发生"原则中的任一条推断出来。
+
+修复方法：
+
+1. getter() / setter() 方法都定义为 synchronized 方法；
+2. 把 value 定义为 volatile 变量。
+
+> 结论：时间先后顺序与先行发生原则之间没有必然联系。因此，衡量并发安全问题的时候不要受到时间顺序的干扰，一切必须以先行发生原则为准。
 
 ##  12.4  Java 与线程
 
@@ -235,12 +270,13 @@ JMM 中的一些先行发生关系：
 
 ![thread](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/JVM/LWP_KLT.png)
 
-- 轻量级进程优缺点
-  - 优点
-    - 某一个阻塞时，不会影响整个进程继续工作
-  - 缺点
-    - 各种线程操作（创建、同步等）需要系统调用，代价相对较高（需在 User Mode 和 Kernel Model 之间来回切换）。
-    - 消耗一定的内核资源。
+#### 轻量级进程优缺点
+
+- 优点
+  - 某一个阻塞时，不会影响整个进程继续工作
+- 缺点
+  - 各种线程操作（创建、同步等）需要系统调用，代价相对较高（需在 User Mode 和 Kernel Model 之间来回切换）；
+  - LWP 要消耗一定的内核资源，因此一个系统支持轻量级进程的数量是有限的。
 
 ####  2. 使用用户线程
 
@@ -258,13 +294,14 @@ UT 和 LWP 的数量比不确定，即 N:M 的关系。许多 Unix 系列操作�
 
 线程调度是指系统为线程分配处理器使用权的过程，主要调度方式有两种：协同式线程调度（Cooperative Threads-Scheduling）和抢占式线程调度（Preemptive Threads-Scheduling）。
 
-- 协同式线程调度
+#### 协同式线程调度
 
 线程的执行时间由线程本身控制，线程执行完自己的工作，要主动通知系统切换到另一个线程。
 
-好处：实现简单，无线程同步问题。
+- 好处：实现简单，无线程同步问题
+- 坏处：线程执行时间不可控制
 
-- 抢占式线程调度
+#### 抢占式线程调度
 
 线程由系统分配执行时间，线程的切换不由本身决定。
 
@@ -274,15 +311,15 @@ Java 使用的就是抢占式线程调度。
 
 Java 定义了 5 种线程状态，任意时间点，一个线程有且仅有其中一个状态。
 
-- 新建（New）
+#### 新建（New）
 
 创建后尚未启动。
 
-- 运行（Runnable）
+#### 运行（Runnable）
 
-包括操作系统线程状态中的 Running 和 Ready（此时线程可能在执行，也可能等待 CPU 分配时间）。
+包括操作系统线程状态中的 Running 和 Ready。此时线程可能在执行，也可能等待 CPU 分配时间。
 
-- 无限期等待（Waiting）
+#### 无限期等待（Waiting）
 
 处于该状态的线程不会被分配 CPU 时间，需等待被其他线程显式唤醒。以下方法会让线程进入该状态：
 
@@ -290,7 +327,7 @@ Java 定义了 5 种线程状态，任意时间点，一个线程有且仅有其
 2. Thread.join();
 3. LockSupport.park();
 
-- 限期等待（Timed Waiting）
+#### 限期等待（Timed Waiting）
 
 处于该状态的线程不会被分配 CPU 时间，但无须其他线程显式唤醒，一段时间后由系统自动唤醒。以下方法会让线程进入该状态：
 
@@ -300,20 +337,20 @@ Java 定义了 5 种线程状态，任意时间点，一个线程有且仅有其
 4. LockSupport.parkNanos();
 5. LockSupport.parkUntil();
 
-- 阻塞（Blocking）
+#### 阻塞（Blocking）
 
-“阻塞”与“等待”的区别：
+"阻塞" 与 "等待" 的区别：
 
-1. “阻塞”在等待获取一个排它锁，另一个线程放弃该锁的时候发生；
+1. "阻塞" 在等待获取一个排它锁，另一个线程放弃该锁的时候发生；
 
-2. “等待”则是等待一段时间，或者等待唤醒动作的发生。
+2. "等待" 则是等待一段时间，或者等待唤醒动作的发生。
 
-- 结束（Terminated）
+#### 结束（Terminated）
 
 线程结束执行。
 
 
 
-线程状态之间的转换关系如下图：
+线程状态之间的转换关系图：
 
 ![thread](https://github.com/JiaoXR/ReadingNotes/blob/master/pics/JVM/thread_status.png)
