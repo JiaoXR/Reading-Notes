@@ -1,4 +1,4 @@
-package com.jaxer.example.temp.neteasy;
+package com.jaxer.example.anvanced;
 
 import sun.misc.Unsafe;
 
@@ -14,6 +14,7 @@ public class CasDemo {
 
 	static {
 		try {
+			// 反射获取变量
 			Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
 			theUnsafe.setAccessible(true);
 			unsafe = (Unsafe) theUnsafe.get(null);
@@ -41,13 +42,13 @@ public class CasDemo {
 	public static void main(String[] args) throws InterruptedException {
 		CasDemo demo = new CasDemo();
 
-		for (int i = 0; i < 2; i++) {
-			new Thread(() -> {
-				for (int j = 0; j < 10000; j++) {
-					demo.increment();
-				}
-			}).start();
-		}
+//		for (int i = 0; i < 2; i++) {
+//			new Thread(() -> {
+//				for (int j = 0; j < 10000; j++) {
+//					demo.increment();
+//				}
+//			}).start();
+//		}
 		Thread.sleep(1000);
 
 		System.out.println("value = " + demo.value);

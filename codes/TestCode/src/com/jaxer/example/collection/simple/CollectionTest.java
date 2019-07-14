@@ -38,13 +38,13 @@ public class CollectionTest {
      * {rat=Fuzzy, cat=Rags, dog=Spot}
      */
     public static void main(String[] args) {
-        print(fill(new ArrayList<>()));
-        print(fill(new LinkedList<>()));
-        print(fill(new HashSet<>()));
-        print(fill(new TreeSet<>()));
-        print(fill(new LinkedHashSet<>()));
-        print(fill(new HashMap<>()));
-        print(fill(new TreeMap<>()));
-        print(fill(new LinkedHashMap<>()));
+//        print(fill(new ArrayList<>()));
+//        print(fill(new LinkedList<>()));
+//        print(fill(new HashSet<>()));
+//        print(fill(new TreeSet<>()));
+//        print(fill(new LinkedHashSet<>()));
+//        print(fill(new HashMap<>()));
+//        print(fill(new TreeMap<>()));
+//        print(fill(new LinkedHashMap<>()));
     }
 }

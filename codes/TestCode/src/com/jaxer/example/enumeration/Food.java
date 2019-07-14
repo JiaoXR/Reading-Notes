@@ -17,10 +17,10 @@ public interface Food {
         BLACL_COFFEE, TEA;
     }
 
-    public static void main(String[] args) {
-        Food food = Appetizer.SALAD;
-        food = MainCourse.BURRITO;
-        food = Coffee.BLACL_COFFEE;
-        System.out.println(food);
-    }
+//    public static void main(String[] args) {
+//        Food food = Appetizer.SALAD;
+//        food = MainCourse.BURRITO;
+//        food = Coffee.BLACL_COFFEE;
+//        System.out.println(food);
+//    }
 }
